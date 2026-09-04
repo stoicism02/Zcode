@@ -169,7 +169,7 @@
     "ignore": "^7.0.5",
     "image-meta": "^0.2.2",
     "js-yaml": "^5.2.1",
-    "picomatch": "^4.0.5",
+    "picomatch": "^4.0.7",
     "shell-quote": "^1.9.0",
     "slice-ansi": "^9.0.0",
     "string-width": "^8.2.2",
