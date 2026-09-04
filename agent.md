@@ -204,26 +204,28 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 
 ## 7. 稳妥实施顺序
 
-### Stage 0：模型和边界确认
+### Stage 0：基础契约和兼容接入
 
-目标：在修改主链路前消除概念冲突。
+目标：在修改主链路前消除概念冲突，并建立不破坏旧调用方式的 Scope 接入点。
 
-- [ ] 定义 Project Task、Tool Task、Run 和 AgentActivation；
-- [ ] 定义 Run 状态机和合法状态转换；
-- [ ] 定义 AgentScope 的最小接口；
+- [x] 定义 Project Task、Tool Task、Run 和 AgentActivation；
+- [x] 定义 Run 状态机和合法状态转换；
+- [x] 定义 AgentScope、WorkspaceRef、CodeArtifact 和 ResourceBag 的最小接口；
+- [x] 将可选 `scope` 接入 AgentOptions 和 ToolContext；未传入时自动建立兼容旧行为的 shared/write Scope；
 - [ ] 定义 Workspace 与 Artifact 的生命周期；
 - [ ] 明确 Git dirty state、非 Git Workspace 和失败保留策略；
 - [ ] 为关键设计决策记录简短 ADR。
 
-验收：核心类型和状态图经过讨论确认，不改变现有单 Agent 行为。
+验收：核心类型和状态图经过讨论确认；类型检查、Scope 单测和现有 Agent/Subagent/Swarm 回归测试通过，不改变现有单 Agent 行为。
 
 ### Stage 1：安全隔离闭环
 
 目标：多个可写 Agent 可以安全并行修改同一 Git Repository，并可靠交付各自 Diff。
 
-- [ ] 实现最小 `AgentScope`；
+- [x] 实现最小 `AgentScope`；
+- [ ] 将 AgentScope 与权限派生、Workspace 分配和 Child 创建策略完整绑定；
 - [ ] 为 `PermissionManager` 增加只收缩的派生能力；
-- [ ] 将 `scope` 注入 `ToolContext`；
+- [x] 将 `scope` 注入 `ToolContext`；
 - [ ] 实现 `WorkspaceManager`；
 - [ ] 为 writable child 分配独立 Worktree；
 - [ ] read-only child 保持共享 Workspace 的兼容行为；
@@ -254,7 +256,8 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 目标：Run 从启动、执行、取消到代码合并都具有可验证的生命周期。
 
 - [ ] 将 Run cancellation 传播到 Child Run、Agent、Tool Task 和 Process；
-- [ ] 实现幂等 `ResourceBag.dispose()`；
+- [x] 实现最小且幂等的 `ResourceBag.dispose()`；
+- [ ] 将 ResourceBag 接入完整 Parent/Child Run 资源树；
 - [ ] 实现 Artifact base commit 与冲突检查；
 - [ ] 在临时验证 Workspace 中运行 test、lint 和 typecheck；
 - [ ] 保存结构化 Validation Result；
@@ -350,8 +353,10 @@ Task D：审查安全问题，read-only Workspace 或基于候选 Artifact 验�
 - [x] 完成现有仓库结构与关键模块的初步梳理；
 - [x] 完成总体改造方向评审；
 - [x] 将实施顺序收敛为 Stage 0 → Stage 4；
-- [ ] 开始 Stage 0：确定核心类型、状态机和生命周期边界；
-- [ ] 开始代码实现。
+- [x] 开始 Stage 0：完成 Runtime 基础类型、Run 状态机和兼容型 AgentScope 接入；
+- [x] 实现最小 ResourceBag，并将 Scope 注入 Agent 驱动的 ToolContext；
+- [ ] 完成 Workspace/Artifact 生命周期策略和关键 ADR；
+- [x] 开始代码实现。
 
 ## 13. 项目完成后的推荐表述
 

@@ -4,6 +4,7 @@ import type { AgentStatus } from "./events.ts"
 import type { Masker } from "./masker.ts"
 import type { Notifier, NotifyOptions } from "./notify.ts"
 import type { PermissionManager, PermissionOptions } from "./permissions/manager.ts"
+import type { AgentScope } from "./runtime.ts"
 import type { Session } from "./session/session.ts"
 import type { Skills } from "./skills.ts"
 import type { Swarm } from "./swarm.ts"
@@ -11,6 +12,7 @@ import type { AgentOptions } from "./types.ts"
 
 import { Emitter, isInstance, normPath } from "@zaly/shared"
 import { LazyCache } from "@zaly/shared/cache"
+import { createLegacyAgentScope } from "./runtime.ts"
 
 type AgentContextOptions = Omit<AgentOptions, "session"> & { session: Session }
 
@@ -40,16 +42,23 @@ export class AgentContext extends Emitter<AgentContextEvents> {
   #tools: Tool[]
   #skills?: Skills
   #prompt: string[]
+  #scope: AgentScope
 
   constructor(opts: AgentContextOptions) {
     super()
     this.#opts = opts
-    this.#cwd = normPath(opts.cwd)
+    this.#cwd = normPath(opts.scope?.workspace.path ?? opts.cwd)
     this.#reasoning = opts.request?.reasoning?.effort ?? "medium"
     this.#session = opts.session
     this.#model = opts.model
     this.#skills = opts.skills
     this.#prompt = opts.prompt ?? []
+    this.#scope =
+      opts.scope ??
+      createLegacyAgentScope({
+        cwd: () => this.cwd,
+        permissions: () => this.#legacyPermissions(),
+      })
 
     this.#tools = opts.tools ?? []
     this.onEmitError = (error) => this.#opts.logger?.child("context").error(error)
@@ -118,6 +127,10 @@ export class AgentContext extends Emitter<AgentContextEvents> {
 
   get signal() {
     return this.#agent?.signal
+  }
+
+  get scope(): AgentScope {
+    return this.#scope
   }
 
   get agent() {
@@ -234,6 +247,10 @@ export class AgentContext extends Emitter<AgentContextEvents> {
   }
 
   async permissions(): Promise<PermissionManager> {
+    return this.#scope.permissions()
+  }
+
+  async #legacyPermissions(): Promise<PermissionManager> {
     return this.#cache.need(
       "permissions",
       async (opts?: PermissionOptions) => {

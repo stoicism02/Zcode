@@ -216,6 +216,10 @@ export class Agent extends Emitter<AgentEvents> {
     return this.#ctx.cwd
   }
 
+  get scope() {
+    return this.#ctx.scope
+  }
+
   get model(): Model | undefined {
     return this.#ctx.model
   }
@@ -773,6 +777,7 @@ export class Agent extends Emitter<AgentEvents> {
       messages: this.session.messages,
       need: (scope, input) => this.#need(scope, input),
       perms: await this.ctx.permissions(),
+      scope: this.scope,
       sessionDir: this.session.dir,
       signal: this.#abortController?.signal,
       swarm: () => this.#ctx.swarm(),
@@ -815,6 +820,7 @@ export class Agent extends Emitter<AgentEvents> {
     this.clearListeners()
     this.#cancelAllWakeups()
     await this.#tasks.killAll()
+    await this.scope.dispose("agent disposed")
   }
 
   #setStatus(status: AgentStatus): void {

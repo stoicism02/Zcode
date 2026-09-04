@@ -18,6 +18,7 @@ import type { NotifyOptions } from "./notify.ts"
 import type { PermissionScope, PermissionScopes } from "./permissions/handlers/registry.ts"
 import type { PermissionManager, PermissionOptions } from "./permissions/manager.ts"
 import type { Suggestion } from "./permissions/types.ts"
+import type { AgentScope } from "./runtime.ts"
 import type { Session } from "./session/session.ts"
 import type { SessionOptions } from "./session/types.ts"
 import type { Skills } from "./skills.ts"
@@ -39,6 +40,10 @@ declare module "@zaly/ai" {
      *  notifications). Only populated when invoked through an `Agent`;
      *  one-shot harnesses leave it undefined. */
     agent?: Agent
+    /** Runtime boundary for the current AgentActivation. Agent-driven
+     *  tool calls always receive one; direct runTool/eval harnesses may
+     *  omit it for backwards compatibility. */
+    scope?: AgentScope
     /** Override the default `bash` command used by the `bash` tool. */
     bash?: string[]
     /** Data directory for tools to read/write durable files. */
@@ -154,6 +159,10 @@ export interface AgentOptions extends CollectOptions {
    * Defaults to the process's current directory at load time.
    */
   cwd?: string
+  /** Runtime boundary for this AgentActivation. When omitted, the
+   *  context creates a legacy shared/write scope around `cwd` so old
+   *  callers keep their existing behavior. */
+  scope?: AgentScope
   /** Tools the model may call. Kernel-owned: the agent both passes
    *  these to the provider on every step and dispatches calls against
    *  them. Mutable post-construction via `agent.tools = …`. */
