@@ -13,6 +13,7 @@ import {
   AgentScope,
   ArtifactConflictChecker,
   ArtifactCollector,
+  ArtifactMerger,
   InvalidRunTransitionError,
   ResourceBag,
   assertRunTransition,
@@ -351,6 +352,81 @@ describe("ArtifactConflictChecker", () => {
       reason: "untracked-files-not-captured",
       status: "blocked",
     })
+  })
+})
+
+describe("ArtifactMerger", () => {
+  test("stages a validated, conflict-free Artifact without creating a commit", async () => {
+    const repositoryRoot = await createGitRepository()
+    const storageRoot = await mkdtemp(join(tmpdir(), "zaly-merge-artifact-"))
+    temporaryDirectories.push(storageRoot)
+    const runId = createRunId()
+    const workspace = await new WorkspaceManager({ rootDir: storageRoot }).createWritable({
+      cwd: repositoryRoot,
+      runId,
+    })
+    await writeFile(join(workspace.path, "tracked.txt"), "child\n")
+    const artifact = await new ArtifactCollector().collect({
+      runId,
+      validation: { checks: [], status: "passed" },
+      workspace,
+    })
+    const parentHead = await new Spawn("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot }).result
+
+    const result = await new ArtifactMerger().apply({ artifact })
+    const cached = await new Spawn("git", ["diff", "--cached", "--name-only"], {
+      cwd: repositoryRoot,
+    }).result
+    const headAfter = await new Spawn("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot }).result
+
+    expect(result.status).toBe("applied")
+    expect(await readFile(join(repositoryRoot, "tracked.txt"), "utf8")).toMatch(/^child\r?\n$/)
+    expect(cached.stdout.toString("utf8").trim()).toBe("tracked.txt")
+    expect(headAfter.stdout).toEqual(parentHead.stdout)
+  })
+
+  test("does not apply an Artifact whose validation did not pass", async () => {
+    const repositoryRoot = await createGitRepository()
+    const storageRoot = await mkdtemp(join(tmpdir(), "zaly-merge-artifact-"))
+    temporaryDirectories.push(storageRoot)
+    const runId = createRunId()
+    const workspace = await new WorkspaceManager({ rootDir: storageRoot }).createWritable({
+      cwd: repositoryRoot,
+      runId,
+    })
+    await writeFile(join(workspace.path, "tracked.txt"), "child\n")
+    const artifact = await new ArtifactCollector().collect({ runId, workspace })
+
+    await expect(new ArtifactMerger().apply({ artifact })).resolves.toMatchObject({
+      reason: "validation-not-passed",
+      status: "blocked",
+    })
+    expect(await readFile(join(repositoryRoot, "tracked.txt"), "utf8")).toBe("base\n")
+  })
+
+  test("does not modify Parent when the Artifact conflicts", async () => {
+    const repositoryRoot = await createGitRepository()
+    const storageRoot = await mkdtemp(join(tmpdir(), "zaly-merge-artifact-"))
+    temporaryDirectories.push(storageRoot)
+    const runId = createRunId()
+    const workspace = await new WorkspaceManager({ rootDir: storageRoot }).createWritable({
+      cwd: repositoryRoot,
+      runId,
+    })
+    await writeFile(join(workspace.path, "tracked.txt"), "child\n")
+    const artifact = await new ArtifactCollector().collect({
+      runId,
+      validation: { checks: [], status: "passed" },
+      workspace,
+    })
+    await writeFile(join(repositoryRoot, "tracked.txt"), "parent\n")
+    await runGit(repositoryRoot, ["add", "tracked.txt"])
+    await runGit(repositoryRoot, ["commit", "-m", "parent conflict"])
+
+    await expect(new ArtifactMerger().apply({ artifact })).resolves.toMatchObject({
+      status: "conflict",
+    })
+    expect(await readFile(join(repositoryRoot, "tracked.txt"), "utf8")).toBe("parent\n")
   })
 })
 

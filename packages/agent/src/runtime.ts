@@ -1,6 +1,7 @@
 export * from "./execution/artifact.ts"
 export * from "./execution/conflict.ts"
 export * from "./execution/ids.ts"
+export * from "./execution/merge.ts"
 export * from "./execution/resources.ts"
 export * from "./execution/run-state.ts"
 export * from "./execution/scope.ts"

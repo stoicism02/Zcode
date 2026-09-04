@@ -266,7 +266,8 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [ ] 在临时验证 Workspace 中运行 test、lint 和 typecheck；
 - [ ] 保存结构化 Validation Result；
 - [ ] 默认要求用户或 Parent Agent 审查；
-- [ ] 实现受控 merge、失败回滚和现场保留策略。
+- [x] 实现 V1 受控 merge：仅将验证通过且无 Git 冲突的 Artifact 暂存到 Parent，不自动 commit；
+- [ ] 完善 merge 失败回滚、现场保留和人工审查后的 commit 策略。
 
 验收：取消 Parent Run 能终止其子树中的运行资源；只有通过约定验证的 Artifact 才能进入合并流程；冲突和验证失败不会污染 Parent Workspace。
 
