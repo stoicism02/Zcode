@@ -11,6 +11,7 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 import { PermissionManager } from "../src/permissions/manager.ts"
 import {
   AgentScope,
+  ArtifactCollector,
   InvalidRunTransitionError,
   ResourceBag,
   assertRunTransition,
@@ -248,5 +249,42 @@ describe("WorkspaceManager", () => {
       status: "removed",
     })
     expect(existsSync(workspace.path)).toBe(false)
+  })
+})
+
+describe("ArtifactCollector", () => {
+  test("captures a Worktree patch and reports untracked paths without their contents", async () => {
+    const repositoryRoot = await createGitRepository()
+    const storageRoot = await mkdtemp(join(tmpdir(), "zaly-artifact-storage-"))
+    temporaryDirectories.push(storageRoot)
+    const runId = createRunId()
+    const workspace = await new WorkspaceManager({ rootDir: storageRoot }).createWritable({
+      cwd: repositoryRoot,
+      runId,
+    })
+    await writeFile(
+      join(workspace.path, "tracked.txt"),
+      `child change
+`
+    )
+    await runGit(workspace.path, ["add", "tracked.txt"])
+    await runGit(workspace.path, ["commit", "-m", "child change"])
+    await writeFile(join(workspace.path, "new-file.txt"), "untracked content")
+
+    const artifact = await new ArtifactCollector().collect({ runId, workspace })
+
+    expect(artifact).toMatchObject({
+      baseCommit: workspace.baseCommit,
+      repositoryRoot,
+      runId,
+      validation: { checks: [], status: "not-run" },
+      workspaceId: workspace.id,
+      workspacePath: workspace.path,
+    })
+    expect(artifact.headCommit).not.toBe(workspace.baseCommit)
+    expect(artifact.filesChanged).toEqual(["tracked.txt"])
+    expect(artifact.patch).toContain("child change")
+    expect(artifact.untrackedFiles).toEqual(["new-file.txt"])
+    expect(artifact.patch).not.toContain("untracked content")
   })
 })

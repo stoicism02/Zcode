@@ -1,4 +1,4 @@
-export type * from "./execution/artifact.ts"
+export * from "./execution/artifact.ts"
 export * from "./execution/ids.ts"
 export * from "./execution/resources.ts"
 export * from "./execution/run-state.ts"

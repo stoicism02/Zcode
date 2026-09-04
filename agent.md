@@ -227,6 +227,7 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [ ] 为 `PermissionManager` 增加只收缩的派生能力；
 - [x] 将 `scope` 注入 `ToolContext`；
 - [x] 实现仅接受 clean Git repository 的 V1 `WorkspaceManager`；
+- [x] 实现从 isolated Worktree 采集最小 `CodeArtifact`（尚未接入 Run 完成和持久化）；
 - [ ] 为 writable child 分配独立 Worktree；
 - [ ] read-only child 保持共享 Workspace 的兼容行为；
 - [ ] 在 Run 完成时生成最小 `CodeArtifact`；
