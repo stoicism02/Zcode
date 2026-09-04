@@ -228,9 +228,10 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [x] 将 `scope` 注入 `ToolContext`；
 - [x] 实现仅接受 clean Git repository 的 V1 `WorkspaceManager`；
 - [x] 实现从 isolated Worktree 采集最小 `CodeArtifact`（尚未接入 Run 完成和持久化）；
-- [ ] 为 writable child 分配独立 Worktree；
-- [ ] read-only child 保持共享 Workspace 的兼容行为；
-- [ ] 在 Run 完成时生成最小 `CodeArtifact`；
+- [x] 为 `subagent(workspace: "worktree")` 分配独立 Worktree，并在完成时返回 Artifact 摘要；
+- [x] 未显式请求 Worktree 的 Child 保持 shared Workspace 的兼容行为；
+- [x] 将 Artifact 注册到 Parent Agent 的进程内 registry，供后续 inspect / RunStore 接入；
+- [ ] 将 Workspace 策略扩展到 Swarm / RunCoordinator，并实现真正 read-only Tool 权限；
 - [ ] 覆盖权限升级、路径逃逸、并行写入、失败隔离和清理测试。
 
 验收：两个 Child 可以同时修改代码，Git 状态互不影响，Parent 能分别获得两份基于明确 `baseCommit` 的 Diff。

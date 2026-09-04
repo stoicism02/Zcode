@@ -2,7 +2,10 @@ import type { MetaPart, Streamable, ToolContext, ToolResult } from "@zaly/ai"
 import type { Agent } from "../src/agent.ts"
 import type { SubagentMeta } from "../src/tools/subagent.ts"
 
-import { existsSync, readFileSync, rmSync } from "node:fs"
+import { execFileSync } from "node:child_process"
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "pathe"
 import { afterEach, describe, expect, test } from "vitest"
 import { subagentTool } from "../src/tools/subagent.ts"
 import { loadAgent, mockModel } from "./helpers.ts"
@@ -21,9 +24,24 @@ async function runToCompletion(s: Streamable): Promise<ToolResult & { running: b
 }
 
 const tmpFiles: string[] = []
+const tmpDirectories: string[] = []
 afterEach(() => {
   for (const f of tmpFiles.splice(0)) if (existsSync(f)) rmSync(f, { force: true })
+  for (const dir of tmpDirectories.splice(0))
+    if (existsSync(dir)) rmSync(dir, { force: true, recursive: true })
 })
+
+function createGitRepository(): string {
+  const root = mkdtempSync(join(tmpdir(), "zaly-subagent-worktree-"))
+  tmpDirectories.push(root)
+  execFileSync("git", ["init"], { cwd: root })
+  execFileSync("git", ["config", "user.email", "subagent-test@example.com"], { cwd: root })
+  execFileSync("git", ["config", "user.name", "Subagent Test"], { cwd: root })
+  writeFileSync(join(root, "tracked.txt"), "base")
+  execFileSync("git", ["add", "tracked.txt"], { cwd: root })
+  execFileSync("git", ["commit", "-m", "initial"], { cwd: root })
+  return root
+}
 
 const buildParent = async (childScripts: ReturnType<typeof okStop>[]): Promise<Agent> =>
   loadAgent({ model: mockModel(childScripts) })
@@ -77,6 +95,28 @@ describe("subagent tool", () => {
     expect(types).toContain("session-start")
   })
 
+  test("worktree child returns an Artifact summary that the parent can inspect", async () => {
+    const repositoryRoot = createGitRepository()
+    const parent = await loadAgent({ cwd: repositoryRoot, model: mockModel([okStop("done")]) })
+    const s = (await subagentTool.call(
+      { description: "isolated work", prompt: "p", task: "inspect", workspace: "worktree" },
+      ctxFor(parent)
+    )) as Streamable
+    const result = await runToCompletion(s)
+
+    if (typeof result.content === "string") throw new Error("expected parts")
+    const meta = result.content.find((part): part is MetaPart => part.type === "meta")
+    const data = meta!.data as SubagentMeta
+    tmpFiles.push(data.sessionPath)
+    expect(data.workspace).toMatchObject({ kind: "worktree" })
+    expect(data.artifact?.id).toBeDefined()
+    expect(parent.getArtifact(data.artifact!.id)?.workspacePath).toBe(data.workspace.path)
+
+    execFileSync("git", ["worktree", "remove", "--force", data.workspace.path], {
+      cwd: repositoryRoot,
+    })
+  })
+
   test("child inherits parent.tools, minus subagent at depth limit", async () => {
     // dummy tool to verify inheritance
     const dummyTool = {
@@ -126,7 +166,7 @@ describe("subagent tool", () => {
       prompt: "p",
       task: "t",
     })
-    expect(args).toEqual({ description: "x", prompt: "p", task: "t" })
+    expect(args).toEqual({ description: "x", prompt: "p", task: "t", workspace: "shared" })
   })
 
   test("hasNew() reflects pending text delta cursor", async () => {

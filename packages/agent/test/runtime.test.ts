@@ -288,3 +288,33 @@ describe("ArtifactCollector", () => {
     expect(artifact.patch).not.toContain("untracked content")
   })
 })
+
+describe("isolated Agent children", () => {
+  test("binds a writable child to a Worktree, derived permissions, and an Artifact", async () => {
+    const repositoryRoot = await createGitRepository()
+    const storageRoot = await mkdtemp(join(tmpdir(), "zaly-child-storage-"))
+    temporaryDirectories.push(storageRoot)
+    const manager = new WorkspaceManager({ rootDir: storageRoot })
+    const parent = await loadAgent({ cwd: repositoryRoot, model: mockModel([]) })
+    const parentPermissions = await parent.ctx.permissions()
+    const child = await parent.child({
+      workspace: { manager, runId: createRunId() },
+    })
+
+    expect(child.scope.workspace).toMatchObject({
+      access: "write",
+      kind: "worktree",
+      ownerRunId: child.scope.runId,
+    })
+    expect(child.cwd).toBe(child.scope.workspace.path)
+    const childPermissions = await child.ctx.permissions()
+    expect(childPermissions).not.toBe(parentPermissions)
+    expect(childPermissions.workspaces).toEqual([child.cwd])
+
+    await writeFile(join(child.cwd, "tracked.txt"), "child work")
+    const artifact = await child.captureArtifact()
+
+    expect(artifact?.filesChanged).toEqual(["tracked.txt"])
+    expect(parent.getArtifact(artifact!.id)).toBe(artifact)
+  })
+})

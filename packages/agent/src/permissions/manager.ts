@@ -22,6 +22,13 @@ export type PermissionOptions = {
   workspaces?: readonly string[]
 }
 
+export interface DerivedPermissionOptions {
+  /** The child agent's pinned working directory. */
+  cwd: string
+  /** Omit to grant the child access to its cwd only. */
+  workspaces?: readonly string[]
+}
+
 /**
  * Owns per-session permission state and dispatches `validate(scope, input)`
  * to the registered handler for `scope`. Handlers receive rules
@@ -82,6 +89,19 @@ export class PermissionManager {
 
   addRule(rule: Rule): void {
     this.#rules.unshift(rule)
+  }
+
+  /**
+   * Create an independent child policy with the same ordered rules and a
+   * narrower workspace set. The child never receives this manager's mutable
+   * workspace or rule arrays, so later approvals cannot flow back upward.
+   */
+  derive(options: DerivedPermissionOptions): PermissionManager {
+    return new PermissionManager({
+      cwd: options.cwd,
+      rules: this.#rules.map((rule) => ({ ...rule })),
+      workspaces: options.workspaces ?? [options.cwd],
+    })
   }
 
   // ── Dispatch ────────────────────────────────────────────────────────

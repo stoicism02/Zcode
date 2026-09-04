@@ -1,9 +1,11 @@
 import type { MetaPart, Streamable, TextPart, ToolContext, ToolResult } from "@zaly/ai"
+import type { CodeArtifactSummary } from "../execution/artifact.ts"
 
 import { AiError, defineTool, stringifyContent } from "@zaly/ai"
 import { tmpdir } from "node:os"
 import { join } from "pathe"
 import { Type } from "typebox"
+import { createRunId, summarizeCodeArtifact, WorkspaceManager } from "../runtime.ts"
 import { uuidv7 } from "../utils/uuid.ts"
 
 /**
@@ -23,9 +25,9 @@ import { uuidv7 } from "../utils/uuid.ts"
  * path so the parent can re-load the full conversation if it needs more
  * than the surface answer.
  *
- * Auth: the spawned `Agent` shares the parent's `PermissionManager`
- * instance — same workspaces, same rules. (We don't deep-copy yet; if a
- * subagent legitimately needs a tighter scope, that's a future option.)
+ * A caller can explicitly request a writable Worktree. That child gets an
+ * independent PermissionManager and returns a compact Artifact summary; the
+ * complete Artifact remains available through the parent Agent's registry.
  */
 
 export type SubagentMeta = {
@@ -44,9 +46,11 @@ export type SubagentMeta = {
   stop?: string
   /** Aggregate token usage across the child's whole run. */
   usage?: { input: number; output: number }
+  workspace: { kind: "shared" | "worktree"; path: string }
+  artifact?: CodeArtifactSummary
+  artifactError?: string
 }
 
-// oxlint-disable-next-line sort-keys -- semantic field order: name, desc, params, call
 export const subagentTool = defineTool({
   name: "subagent",
   desc:
@@ -74,6 +78,13 @@ export const subagentTool = defineTool({
         "The actual task the subagent should perform, as if you were sending " +
         "it as a user message. Be specific about the deliverable.",
     }),
+    workspace: Type.Optional(
+      Type.Union([Type.Literal("shared"), Type.Literal("worktree")], {
+        description:
+          'Where the child may work. Use "worktree" only when it must modify code; it creates an isolated Git Worktree. Default: "shared" for legacy read/research tasks.',
+        default: "shared",
+      })
+    ),
   }),
 
   async call(args, ctx: ToolContext<SubagentMeta>): Promise<Streamable> {
@@ -90,6 +101,7 @@ export const subagentTool = defineTool({
     const sessionPath = join(tmpdir(), `zaly-subagent-${id}.jsonl`)
     const startedAt = Date.now()
     const { Session } = await import("../session/session.ts")
+    const workspace = args.workspace ?? "shared"
 
     // `parent.child(...)` handles all the inheritance — cwd, model,
     // permissions, depth + 1, tool list (incl. the loaded skill tool),
@@ -97,6 +109,13 @@ export const subagentTool = defineTool({
     const child = await parent.child({
       prompt: [args.prompt],
       session: await Session.load({ path: sessionPath }),
+      workspace:
+        workspace === "worktree"
+          ? {
+              manager: new WorkspaceManager({ rootDir: join(tmpdir(), "zaly-worktrees") }),
+              runId: createRunId(),
+            }
+          : undefined,
     })
     const depth = child.depth
 
@@ -106,6 +125,8 @@ export const subagentTool = defineTool({
     let cursor = 0
     let finalResult: ToolResult | undefined
     let stopReason: string | undefined
+    let artifact: CodeArtifactSummary | undefined
+    let artifactError: string | undefined
 
     child.on("stream-event", ({ event }) => {
       if (event.type === "text-delta" && typeof event.delta === "string") {
@@ -130,6 +151,12 @@ export const subagentTool = defineTool({
       status: running ? "running" : "done",
       stop: stopReason,
       usage: { input: child.totalUsage.input, output: child.totalUsage.output },
+      workspace: {
+        kind: child.scope.workspace.kind,
+        path: child.scope.workspace.path,
+      },
+      ...(artifact && { artifact }),
+      ...(artifactError && { artifactError }),
     })
 
     /** Pull the last assistant text out of the child's session — the
@@ -177,6 +204,12 @@ export const subagentTool = defineTool({
       },
       done: runDone.then(
         async () => {
+          try {
+            const captured = await child.captureArtifact()
+            if (captured) artifact = summarizeCodeArtifact(captured)
+          } catch (error) {
+            artifactError = error instanceof Error ? error.message : String(error)
+          }
           // Flush + close the JSONL writer so the file is fully on disk
           // by the time the parent reads `sessionPath`.
           await child.session.close()
@@ -187,6 +220,15 @@ export const subagentTool = defineTool({
           // Don't reject the `done` promise — the harness's contract is
           // "completion is a final snapshot, not a throw."
           stopReason ??= "error"
+          try {
+            const captured = await child.captureArtifact()
+            if (captured) artifact = summarizeCodeArtifact(captured)
+          } catch (artifactCaptureError) {
+            artifactError =
+              artifactCaptureError instanceof Error
+                ? artifactCaptureError.message
+                : String(artifactCaptureError)
+          }
           await child.session.close().catch(() => undefined)
           const meta = buildMeta(false)
           const message = error instanceof Error ? error.message : String(error)

@@ -43,6 +43,22 @@ describe("PermissionManager — workspaces", () => {
     m.removeWorkspace("never-added")
     expect([...m.workspaces]).toEqual(before)
   })
+
+  test("derive copies ordered rules into an isolated child workspace", () => {
+    const parent = new PermissionManager({
+      cwd,
+      rules: [{ pattern: "write", policy: "deny", scope: "tool" }],
+      workspaces: [cwd, "/tmp/other"],
+    })
+    const child = parent.derive({ cwd: "/tmp/zaly-worktree" })
+
+    expect(child).not.toBe(parent)
+    expect(child.workspaces).toEqual(["/tmp/zaly-worktree"])
+    expect(child.validate("tool", "write").verdict).toBe("deny")
+
+    child.addRule({ pattern: "read", policy: "allow", scope: "tool" })
+    expect(parent.rules).toHaveLength(1)
+  })
 })
 
 describe("PermissionManager — rules", () => {

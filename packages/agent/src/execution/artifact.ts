@@ -37,6 +37,27 @@ export interface CodeArtifact {
   createdAt: number
 }
 
+/** Compact delivery information safe to surface in a parent Agent's context. */
+export interface CodeArtifactSummary {
+  id: ArtifactId
+  baseCommit: string
+  headCommit?: string
+  filesChanged: readonly string[]
+  untrackedFiles: readonly string[]
+  validationStatus: ValidationStatus
+}
+
+export function summarizeCodeArtifact(artifact: CodeArtifact): CodeArtifactSummary {
+  return {
+    baseCommit: artifact.baseCommit,
+    filesChanged: artifact.filesChanged,
+    headCommit: artifact.headCommit,
+    id: artifact.id,
+    untrackedFiles: artifact.untrackedFiles,
+    validationStatus: artifact.validation.status,
+  }
+}
+
 export type ArtifactErrorCode = "git-command-failed" | "invalid-workspace"
 
 /** A failure to turn a Worktree into a reviewable code delivery. */

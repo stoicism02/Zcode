@@ -13,6 +13,9 @@ import type { Logger } from "@zaly/shared/logger"
 import type { Agent } from "./agent.ts"
 import type { CompactionOptions } from "./compaction/compactions.ts"
 import type { AgentStopKind, StepKind } from "./events.ts"
+import type { ArtifactCollector } from "./execution/artifact.ts"
+import type { RunId } from "./execution/ids.ts"
+import type { WorkspaceManager } from "./execution/workspace.ts"
 import type { MaskerOptions } from "./masker.ts"
 import type { NotifyOptions } from "./notify.ts"
 import type { PermissionScope, PermissionScopes } from "./permissions/handlers/registry.ts"
@@ -262,4 +265,16 @@ export interface AgentOptions extends CollectOptions {
   bash?: string[]
 
   loadModel?: (id: string) => Promise<Model>
+}
+
+/** Explicit request for an isolated, writable child workspace. */
+export interface WritableChildWorkspaceOptions {
+  manager: WorkspaceManager
+  runId?: RunId
+  artifactCollector?: ArtifactCollector
+}
+
+/** Options accepted by `Agent.child()`. Omit `workspace` to retain legacy sharing. */
+export type ChildAgentOptions = Partial<AgentOptions> & {
+  workspace?: WritableChildWorkspaceOptions
 }

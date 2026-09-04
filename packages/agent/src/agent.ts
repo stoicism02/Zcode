@@ -1,4 +1,3 @@
-// oxlint-disable no-await-in-loop
 import type {
   AssistantMessage,
   Content,
@@ -18,11 +17,23 @@ import type {
 import type { CompactionOptions } from "./compaction/compactions.ts"
 import type { AgentContext } from "./ctx.ts"
 import type { AgentEvents, AgentStatus, AgentStop, AgentStopKind } from "./events.ts"
+import type { CodeArtifact } from "./execution/artifact.ts"
+import type { ArtifactId } from "./execution/ids.ts"
 import type { Session } from "./session/session.ts"
-import type { AgentOptions, ContextPressure, SendMode, StepResult, TurnResult } from "./types.ts"
+import type {
+  AgentOptions,
+  ChildAgentOptions,
+  ContextPressure,
+  SendMode,
+  StepResult,
+  TurnResult,
+} from "./types.ts"
 
 import { AiError, isContextOverflow, runTool } from "@zaly/ai"
 import { Emitter, toValue, toError } from "@zaly/shared"
+import { ArtifactCollector } from "./execution/artifact.ts"
+import { createRunId } from "./execution/ids.ts"
+import { AgentScope } from "./execution/scope.ts"
 import { StopPolicy } from "./stop.ts"
 import { Tasks, taskCompletionMessage, taskInfoPart } from "./tasks.ts"
 import { TokenUsage } from "./utils/usage.ts"
@@ -60,6 +71,10 @@ export class Agent extends Emitter<AgentEvents> {
   #started = false
 
   #parent?: Agent
+  #artifact?: CodeArtifact
+  #artifactCapture?: () => Promise<CodeArtifact>
+  #artifactPromise?: Promise<CodeArtifact>
+  readonly #artifacts = new Map<ArtifactId, CodeArtifact>()
 
   #injectQueue: Message[] = []
   #appendQueue: Message[] = []
@@ -161,8 +176,9 @@ export class Agent extends Emitter<AgentEvents> {
    *  tool is filtered out of its inherited tool list so recursion
    *  bottoms out cleanly. The model just doesn't see the tool — no
    *  error path. */
-  async child(overrides: Partial<AgentOptions> = {}): Promise<Agent> {
-    const childDepth = overrides.depth ?? this.depth + 1
+  async child(overrides: ChildAgentOptions = {}): Promise<Agent> {
+    const { workspace: workspaceOptions, ...childOverrides } = overrides
+    const childDepth = childOverrides.depth ?? this.depth + 1
     // Inherit the *effective* step tool list (includes the loaded
     // `skill` tool). The child opts out of its own skill scan since
     // the catalog is shared.
@@ -170,6 +186,37 @@ export class Agent extends Emitter<AgentEvents> {
     let tools = [...this.tools].filter((t) => t.name !== "skill")
     if (childDepth >= this.maxDepth) tools = tools.filter((t) => t.name !== "subagent")
     const { createAgent } = await import("./ctx.ts")
+    const inheritedPermissions = await this.ctx.permissions()
+    let isolated:
+      | {
+          artifactCollector: ArtifactCollector
+          runId: NonNullable<AgentScope["runId"]>
+          scope: AgentScope
+        }
+      | undefined
+
+    if (workspaceOptions) {
+      if (childOverrides.cwd || childOverrides.permissions || childOverrides.scope) {
+        throw new Error(
+          "An isolated child controls its cwd, permissions, and scope; do not override them."
+        )
+      }
+      const runId = workspaceOptions.runId ?? createRunId()
+      const workspace = await workspaceOptions.manager.createWritable({
+        cwd: this.cwd,
+        runId,
+      })
+      const permissions = inheritedPermissions.derive({ cwd: workspace.path })
+      isolated = {
+        artifactCollector: workspaceOptions.artifactCollector ?? new ArtifactCollector(),
+        runId,
+        scope: new AgentScope({
+          permissions: () => permissions,
+          runId,
+          workspace,
+        }),
+      }
+    }
 
     const ret = await createAgent({
       cwd: this.cwd,
@@ -183,7 +230,7 @@ export class Agent extends Emitter<AgentEvents> {
       // session-started / time / etc. injections that the harness
       // explicitly opted out of.
       notify: this.#opts.notify,
-      permissions: await this.ctx.permissions(),
+      permissions: inheritedPermissions,
       skills: this.#ctx.skills, // shared catalog; child doesn't reload
       // Propagate the swarm so the child + every grandchild address
       // each other through the same registry. Override-able via
@@ -191,9 +238,25 @@ export class Agent extends Emitter<AgentEvents> {
       // tree (rare).
       swarm: await this.#ctx.swarm(),
       tools,
-      ...overrides,
+      ...childOverrides,
+      ...(isolated && {
+        cwd: isolated.scope.workspace.path,
+        permissions: await isolated.scope.permissions(),
+        scope: isolated.scope,
+      }),
     })
     ret.#parent = this
+    if (isolated) {
+      ret.#artifactCapture = async () => {
+        const artifact = await isolated.artifactCollector.collect({
+          runId: isolated.runId,
+          workspace: isolated.scope.workspace,
+        })
+        ret.#artifact = artifact
+        this.#recordArtifact(artifact)
+        return artifact
+      }
+    }
     // Children are spawned ready — subagent dispatch typically calls
     // `.send()` immediately after, and inspecting `child.tools` /
     // `child.prompt` before sending should just work.
@@ -271,6 +334,22 @@ export class Agent extends Emitter<AgentEvents> {
     return this.#parent
   }
 
+  /** Artifact captured from this isolated child, once its run has completed. */
+  get artifact(): CodeArtifact | undefined {
+    return this.#artifact
+  }
+
+  /** Find an Artifact created by this agent or any of its descendants in this process. */
+  getArtifact(id: ArtifactId): CodeArtifact | undefined {
+    return this.#artifacts.get(id)
+  }
+
+  /** Capture this isolated child once. Shared children have no Artifact source. */
+  captureArtifact(): Promise<CodeArtifact | undefined> {
+    if (!this.#artifactCapture) return Promise.resolve(undefined)
+    return (this.#artifactPromise ??= this.#artifactCapture())
+  }
+
   get tools() {
     return this.#ctx.tools
   }
@@ -288,6 +367,11 @@ export class Agent extends Emitter<AgentEvents> {
    *  prefer the agent's higher-level surface. */
   get tasks(): Tasks {
     return this.#tasks
+  }
+
+  #recordArtifact(artifact: CodeArtifact): void {
+    this.#artifacts.set(artifact.id, artifact)
+    if (this.#parent) this.#parent.#recordArtifact(artifact)
   }
 
   // ── Input ────────────────────────────────────────────────────────────
