@@ -48,6 +48,8 @@ export interface WorkspaceRef {
   access: WorkspaceAccess
   ownerRunId?: RunId
   baseCommit?: string
+  /** Git root when this workspace was allocated from a repository. */
+  repositoryRoot?: string
 }
 
 export type RunStatus = "created" | "queued" | "running" | RunTerminalStatus

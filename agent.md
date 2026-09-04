@@ -212,9 +212,9 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [x] 定义 Run 状态机和合法状态转换；
 - [x] 定义 AgentScope、WorkspaceRef、CodeArtifact 和 ResourceBag 的最小接口；
 - [x] 将可选 `scope` 接入 AgentOptions 和 ToolContext；未传入时自动建立兼容旧行为的 shared/write Scope；
-- [ ] 定义 Workspace 与 Artifact 的生命周期；
-- [ ] 明确 Git dirty state、非 Git Workspace 和失败保留策略；
-- [ ] 为关键设计决策记录简短 ADR。
+- [x] 定义 V1 Workspace 与 Artifact 的生命周期；
+- [x] 明确 Git dirty state、非 Git Workspace 和失败保留策略；
+- [x] 为关键设计决策记录简短 ADR。
 
 验收：核心类型和状态图经过讨论确认；类型检查、Scope 单测和现有 Agent/Subagent/Swarm 回归测试通过，不改变现有单 Agent 行为。
 
@@ -226,7 +226,7 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [ ] 将 AgentScope 与权限派生、Workspace 分配和 Child 创建策略完整绑定；
 - [ ] 为 `PermissionManager` 增加只收缩的派生能力；
 - [x] 将 `scope` 注入 `ToolContext`；
-- [ ] 实现 `WorkspaceManager`；
+- [x] 实现仅接受 clean Git repository 的 V1 `WorkspaceManager`；
 - [ ] 为 writable child 分配独立 Worktree；
 - [ ] read-only child 保持共享 Workspace 的兼容行为；
 - [ ] 在 Run 完成时生成最小 `CodeArtifact`；
