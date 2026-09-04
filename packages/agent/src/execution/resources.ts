@@ -39,6 +39,8 @@ export class ResourceBag implements DisposableResource {
     for (const resource of this.#resources.splice(0).toReversed()) {
       try {
         const cleanup = typeof resource === "function" ? resource : () => resource.dispose()
+        // Cleanup is deliberately sequential so reverse ownership order is preserved.
+        // oxlint-disable-next-line no-await-in-loop
         await cleanup()
       } catch (error) {
         errors.push(error)

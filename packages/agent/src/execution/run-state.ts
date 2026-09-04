@@ -1,13 +1,13 @@
 import type { RunStatus, RunTerminalStatus } from "./types.ts"
 
 const transitions = {
+  cancelled: [],
   created: ["queued", "cancelled"],
+  failed: [],
+  interrupted: [],
   queued: ["running", "cancelled"],
   running: ["succeeded", "failed", "cancelled", "interrupted"],
   succeeded: [],
-  failed: [],
-  cancelled: [],
-  interrupted: [],
 } as const satisfies Record<RunStatus, readonly RunStatus[]>
 
 export class InvalidRunTransitionError extends Error {

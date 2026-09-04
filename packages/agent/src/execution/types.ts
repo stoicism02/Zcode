@@ -53,7 +53,7 @@ export interface WorkspaceRef {
 export type RunStatus = "created" | "queued" | "running" | RunTerminalStatus
 export type RunTerminalStatus = "cancelled" | "failed" | "interrupted" | "succeeded"
 
-/** Durable state for one execution attempt of a ProjectTask. */
+/** Durable state for one concrete execution attempt of a ProjectTask. */
 export interface RunRecord {
   id: RunId
   taskId: ProjectTaskId

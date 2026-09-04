@@ -15,7 +15,7 @@ export interface ValidationSummary {
   checks: readonly ValidationCheck[]
 }
 
-/** Standard code delivery produced before an isolated workspace can be released. */
+/** Standard code delivery captured before an isolated workspace can be released. */
 export interface CodeArtifact {
   id: ArtifactId
   runId: RunId

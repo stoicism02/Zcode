@@ -15,7 +15,7 @@ export interface AgentScopeOptions {
   abortController?: AbortController
 }
 
-/** Runtime boundary carried by one AgentActivation. */
+/** Execution boundary carried by one AgentActivation. */
 export class AgentScope {
   readonly id: AgentActivationId
   readonly runId?: RunId

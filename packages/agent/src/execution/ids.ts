@@ -2,7 +2,7 @@ import { uuidv7 } from "../utils/uuid.ts"
 
 declare const runtimeIdBrand: unique symbol
 
-/** Nominal identifier used to prevent mixing runtime entity ids. */
+/** Nominal identifier that prevents mixing execution entity ids. */
 export type RuntimeId<T extends string> = string & { readonly [runtimeIdBrand]: T }
 
 export type AgentActivationId = RuntimeId<"agent-activation">
