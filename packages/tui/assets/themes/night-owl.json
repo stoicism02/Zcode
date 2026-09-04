@@ -1,0 +1,116 @@
+{
+  "$schema": "file:./../schemas/theme.schema.json",
+  "id": "night-owl",
+  "name": "Night Owl",
+  "shiki": "night-owl",
+  "text": "#d6deeb",
+  "subtle": "#575656",
+  "ui": {
+    "bg": "#011627",
+    "fg": "#d6deeb"
+  },
+  "primary": "#82AAFF",
+  "accent": "#C792EA",
+  "success": "#22da6e",
+  "info": "#21c7a8",
+  "warn": "#b39554",
+  "error": "#EF5350",
+  "muted": "#575656",
+  "border": "#5f7e97",
+  "code": {
+    "bg": "#4f4f4f"
+  },
+  "mdCodeBlock": {
+    "bg": "#4f4f4f"
+  },
+  "overlay": {
+    "bg": "#021320"
+  },
+  "highlight": {
+    "bg": "#1d3b53"
+  },
+  "selection": {
+    "bg": "#1d3b53"
+  },
+  "diffAdd": {
+    "bg": "#162c31",
+    "fg": "#c5e478"
+  },
+  "diffDel": {
+    "bg": "#31222f",
+    "fg": "#87383e"
+  },
+  "diffTitle": {
+    "italic": true,
+    "fg": "#a2bffc"
+  },
+  "comment": {
+    "italic": true,
+    "fg": "#637777"
+  },
+  "syntaxNumber": {
+    "fg": "#F78C6C"
+  },
+  "syntaxString": {
+    "fg": "#ecc48d"
+  },
+  "syntaxBoolean": {
+    "fg": "#ff5874"
+  },
+  "syntaxFunction": {
+    "italic": true,
+    "fg": "#82AAFF"
+  },
+  "syntaxField": {
+    "fg": "#c5e478"
+  },
+  "syntaxSpecial": {},
+  "syntaxDelimiter": {},
+  "syntaxBracket": {},
+  "mdHeading": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdHeading1": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdHeading2": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdHeading3": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdHeading4": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdHeading5": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdHeading6": {
+    "fg": "#82b1ff",
+    "bold": true
+  },
+  "mdBold": {
+    "bold": true,
+    "fg": "#c5e478"
+  },
+  "mdItalic": {
+    "italic": true,
+    "fg": "#c792ea"
+  },
+  "mdLink": {
+    "fg": "#ff869a"
+  },
+  "mdQuote": {
+    "italic": true,
+    "fg": "#697098"
+  },
+  "mdCode": {
+    "fg": "#c5e478"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "name": "@zaly/plugin",
+  "version": "0.0.4",
+  "description": "Plugin-facing API and loader helpers for zaly.",
+  "keywords": [
+    "api",
+    "extensions",
+    "plugins",
+    "zaly"
+  ],
+  "homepage": "https://github.com/folke/zaly/tree/main/packages/plugin#readme",
+  "bugs": {
+    "url": "https://github.com/folke/zaly/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/folke/zaly.git",
+    "directory": "packages/plugin"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "z build",
+    "lint": "z lint",
+    "test": "z test"
+  },
+  "dependencies": {
+    "@zaly/agent": "workspace:*",
+    "@zaly/ai": "workspace:*",
+    "@zaly/shared": "workspace:*",
+    "@zaly/tui": "workspace:*"
+  },
+  "devDependencies": {
+    "jiti": "^2.7.0"
+  },
+  "peerDependencies": {
+    "typebox": "^1.3.6"
+  },
+  "engines": {
+    "bun": ">=1.2",
+    "node": ">=22.11"
+  },
+  "inlinedDependencies": {
+    "jiti": "2.7.0"
+  }
+}

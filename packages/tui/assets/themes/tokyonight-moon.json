@@ -1,0 +1,157 @@
+{
+  "accent": "#ff966c",
+  "blend": "#222436",
+  "border": "#589ed7",
+  "borderTitle": {
+    "bold": true,
+    "fg": "#589ed7"
+  },
+  "code": {
+    "bg": "#1e2030-1"
+  },
+  "comment": {
+    "fg": "#636da6",
+    "italic": true
+  },
+  "delim": {
+    "fg": "#89ddff"
+  },
+  "diffAdd": {
+    "bg": "#2a4556"
+  },
+  "diffContext": {
+    "bg": "#252a3f"
+  },
+  "diffDel": {
+    "bg": "#4b2a3d"
+  },
+  "divider": "#589ed7",
+  "error": "#c53b53",
+  "gutter": "#3b4261",
+  "highlight": {
+    "bg": "#2f334d",
+    "fg": "#c8d3f5"
+  },
+  "id": "tokyonight-moon",
+  "info": "#0db9d7",
+  "mdCode": {
+    "bg": "#444a73",
+    "fg": "#82aaff"
+  },
+  "mdCodeBlock": {
+    "bg": "#1e2030-1",
+    "fg": "#c8d3f5"
+  },
+  "mdHeading": {
+    "bg": "#2c314a",
+    "bold": true,
+    "fg": "#82aaff"
+  },
+  "mdHeading1": {
+    "bg": "#2c314a",
+    "bold": true,
+    "fg": "#82aaff"
+  },
+  "mdHeading2": {
+    "bg": "#38343d",
+    "bold": true,
+    "fg": "#ffc777"
+  },
+  "mdHeading3": {
+    "bg": "#32383f",
+    "bold": true,
+    "fg": "#c3e88d"
+  },
+  "mdHeading4": {
+    "bg": "#273644",
+    "bold": true,
+    "fg": "#4fd6be"
+  },
+  "mdHeading5": {
+    "bg": "#32304a",
+    "bold": true,
+    "fg": "#c099ff"
+  },
+  "mdHeading6": {
+    "bg": "#383148",
+    "bold": true,
+    "fg": "#fca7ea"
+  },
+  "mdHr": {
+    "bold": true,
+    "fg": "#ff966c"
+  },
+  "mdLink": {
+    "fg": "#4fd6be",
+    "underline": true
+  },
+  "mdListBullet": {
+    "fg": "#ff966c"
+  },
+  "mdListChecked": {
+    "fg": "#4fd6be"
+  },
+  "mdListUnchecked": {
+    "fg": "#82aaff"
+  },
+  "mdQuote": {
+    "fg": "#636da6",
+    "italic": false
+  },
+  "mdTable": "#ff966c",
+  "muted": "#545c7e",
+  "name": "Tokyo Night Moon",
+  "overlay": {
+    "bg": "#1e2030",
+    "fg": "#c8d3f5"
+  },
+  "primary": "#82aaff",
+  "quiet": {
+    "dim": true,
+    "fg": "#545c7e",
+    "italic": true
+  },
+  "selection": {
+    "bg": "#2d3f76"
+  },
+  "shiki": "tokyo-night",
+  "subtle": "#1e2030",
+  "success": "#4fd6be",
+  "syntaxBoolean": {
+    "fg": "#65bcff"
+  },
+  "syntaxBracket": {
+    "fg": "#828bb8"
+  },
+  "syntaxConstant": {
+    "fg": "#fca7ea"
+  },
+  "syntaxDelimiter": {
+    "fg": "#89ddff"
+  },
+  "syntaxField": {
+    "fg": "inherit"
+  },
+  "syntaxFunction": {
+    "fg": "#82aaff"
+  },
+  "syntaxNumber": {
+    "fg": "#ff966c"
+  },
+  "syntaxSpecial": {
+    "fg": "#65bcff"
+  },
+  "syntaxString": {
+    "fg": "#c3e88d"
+  },
+  "text": "#c8d3f5",
+  "title": {
+    "bold": true,
+    "fg": "#82aaff"
+  },
+  "ui": {
+    "bg": "#222436",
+    "fg": "#c8d3f5"
+  },
+  "warn": "#ffc777"
+}

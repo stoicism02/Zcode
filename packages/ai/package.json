@@ -1,0 +1,67 @@
+{
+  "name": "@zaly/ai",
+  "version": "0.0.5",
+  "description": "Provider/model abstraction, auth, streaming, tools, content, and validation for zaly.",
+  "keywords": [
+    "ai",
+    "llm",
+    "models",
+    "providers",
+    "tools"
+  ],
+  "homepage": "https://github.com/folke/zaly/tree/main/packages/ai#readme",
+  "bugs": {
+    "url": "https://github.com/folke/zaly/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/folke/zaly.git",
+    "directory": "packages/ai"
+  },
+  "files": [
+    "dist/**/*",
+    "assets/*"
+  ],
+  "type": "module",
+  "imports": {
+    "#assets/*": "./assets/*"
+  },
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "z build",
+    "lint": "z lint",
+    "models": "bun scripts/fetch-models.ts",
+    "test": "z test"
+  },
+  "dependencies": {
+    "@zaly/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "jsonrepair": "^3.15.0",
+    "mitata": "^1.0.34"
+  },
+  "peerDependencies": {
+    "typebox": "^1.3.6"
+  },
+  "engines": {
+    "bun": ">=1.2",
+    "node": ">=22.11"
+  },
+  "inlinedDependencies": {
+    "jsonrepair": "3.15.0"
+  }
+}

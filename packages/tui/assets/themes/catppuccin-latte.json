@@ -1,0 +1,124 @@
+{
+  "$schema": "file:./../schemas/theme.schema.json",
+  "id": "catppuccin-latte",
+  "name": "Catppuccin Latte",
+  "shiki": "catppuccin-latte",
+  "text": "#4c4f69",
+  "subtle": "#6c6f85",
+  "ui": {
+    "bg": "#eff1f5",
+    "fg": "#4c4f69"
+  },
+  "primary": "#1e66f5",
+  "accent": "#04a5e5",
+  "success": "#40a02b",
+  "info": "#179299",
+  "warn": "#fe640b",
+  "error": "#d20f39",
+  "muted": "#6c6f85",
+  "border": "#acb0be",
+  "code": {
+    "bg": "#e6e9ef"
+  },
+  "mdCodeBlock": {
+    "bg": "#e6e9ef"
+  },
+  "overlay": {
+    "bg": "#e6e9ef"
+  },
+  "highlight": {
+    "bg": "#cccfd7"
+  },
+  "selection": {
+    "bg": "#cccfd7"
+  },
+  "diffAdd": {
+    "bg": "#cce1cd",
+    "fg": "#40a02b"
+  },
+  "diffDel": {
+    "bg": "#e9c4cf",
+    "fg": "#d20f39"
+  },
+  "diffTitle": {
+    "fg": "#1e66f5"
+  },
+  "comment": {
+    "italic": true,
+    "fg": "#7c7f93"
+  },
+  "syntaxNumber": {
+    "fg": "#fe640b"
+  },
+  "syntaxString": {
+    "fg": "#40a02b"
+  },
+  "syntaxBoolean": {
+    "fg": "#fe640b"
+  },
+  "syntaxFunction": {
+    "italic": true,
+    "fg": "#1e66f5"
+  },
+  "syntaxSpecial": {
+    "fg": "#8839ef"
+  },
+  "syntaxDelimiter": {
+    "fg": "#7c7f93"
+  },
+  "mdHeading": {
+    "fg": "#d20f39",
+    "bold": true
+  },
+  "mdHeading1": {
+    "fg": "#d20f39",
+    "bold": true
+  },
+  "mdHeading2": {
+    "fg": "#fe640b",
+    "bold": true
+  },
+  "mdHeading3": {
+    "fg": "#df8e1d",
+    "bold": true
+  },
+  "mdHeading4": {
+    "fg": "#40a02b",
+    "bold": true
+  },
+  "mdHeading5": {
+    "fg": "#209fb5",
+    "bold": true
+  },
+  "mdHeading6": {
+    "fg": "#7287fd",
+    "bold": true
+  },
+  "mdBold": {
+    "bold": true,
+    "fg": "#d20f39"
+  },
+  "mdItalic": {
+    "italic": true,
+    "fg": "#d20f39"
+  },
+  "mdStrikethrough": {
+    "strikethrough": true,
+    "fg": "#6c6f85"
+  },
+  "mdLink": {
+    "fg": "#7287fd"
+  },
+  "mdQuote": {
+    "fg": "#ea76cb"
+  },
+  "mdListBullet": {
+    "fg": "#179299"
+  },
+  "mdCode": {
+    "fg": "#40a02b"
+  },
+  "mdHr": {
+    "fg": "#179299"
+  }
+}

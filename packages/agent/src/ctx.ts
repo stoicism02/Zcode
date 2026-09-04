@@ -1,0 +1,264 @@
+import type { Model, ReasoningEffort, Tool } from "@zaly/ai"
+import type { Agent } from "./agent.ts"
+import type { AgentStatus } from "./events.ts"
+import type { Masker } from "./masker.ts"
+import type { Notifier, NotifyOptions } from "./notify.ts"
+import type { PermissionManager, PermissionOptions } from "./permissions/manager.ts"
+import type { Session } from "./session/session.ts"
+import type { Skills } from "./skills.ts"
+import type { Swarm } from "./swarm.ts"
+import type { AgentOptions } from "./types.ts"
+
+import { Emitter, isInstance, normPath } from "@zaly/shared"
+import { LazyCache } from "@zaly/shared/cache"
+
+type AgentContextOptions = Omit<AgentOptions, "session"> & { session: Session }
+
+type Slots = {
+  notifier: Notifier
+  masker: Masker
+  permissions: PermissionManager
+  swarm: Swarm
+}
+
+export type AgentContextEvents = {
+  model: { model?: Model; prev?: Model }
+  reasoning: { effort: ReasoningEffort; prev?: ReasoningEffort }
+  session: { session: Session; prev?: Session }
+  cwd: { cwd: string; prev?: string }
+  skills: { skills?: Skills }
+}
+
+export class AgentContext extends Emitter<AgentContextEvents> {
+  #agent?: Agent
+  #opts: AgentOptions
+  #model?: Model
+  #session: Session
+  #reasoning: ReasoningEffort
+  #cwd: string
+  #cache = new LazyCache<Slots>()
+  #tools: Tool[]
+  #skills?: Skills
+  #prompt: string[]
+
+  constructor(opts: AgentContextOptions) {
+    super()
+    this.#opts = opts
+    this.#cwd = normPath(opts.cwd)
+    this.#reasoning = opts.request?.reasoning?.effort ?? "medium"
+    this.#session = opts.session
+    this.#model = opts.model
+    this.#skills = opts.skills
+    this.#prompt = opts.prompt ?? []
+
+    this.#tools = opts.tools ?? []
+    this.onEmitError = (error) => this.#opts.logger?.child("context").error(error)
+
+    this.on("model", async ({ model }) => {
+      if (!this.#session.started) return
+      if (model) await this.session.update({ modelId: model.id })
+    })
+      .on("reasoning", async ({ effort }) => {
+        if (!this.#session.started) return
+        await this.session.update({ reasoning: effort })
+      })
+      .on("cwd", ({ cwd }) => {
+        if (!this.#session.started) return
+        this.#cache.forget("permissions") // reset permissions to force reload with new cwd
+        void this.session.update({ cwd })
+      })
+  }
+
+  private async start() {
+    const [_masker, notifier] = await Promise.all([this.masker(), this.notifier()])
+
+    if (!this.model) throw new Error("model is required to start agent session")
+
+    if (notifier) notifier.attach(this.agent)
+
+    await this.session.start({
+      cwd: this.cwd,
+      modelId: this.model.id,
+      reasoning: this.reasoning,
+    })
+    // oxlint-disable-next-line no-await-in-loop
+    for (const m of this.#opts.messages ?? []) await this.session.add(m)
+  }
+
+  attach(agent: Agent) {
+    if (this.#agent === agent) return
+    if (this.#agent) throw new Error("agent already attached to context")
+    if (agent.started) throw new Error("cannot attach agent that has already started")
+    this.#agent = agent
+    agent.once("start", () => this.start())
+  }
+
+  get messages() {
+    return this.session.messages
+  }
+
+  get status(): AgentStatus | undefined {
+    return this.#agent?.status
+  }
+
+  get opts() {
+    return this.#opts
+  }
+
+  get cwd() {
+    return this.#cwd
+  }
+
+  set cwd(c: string) {
+    if (c === this.#cwd) return
+    const prev = this.#cwd
+    this.#cwd = normPath(c)
+    void this.emit("cwd", { cwd: this.#cwd, prev })
+  }
+
+  get signal() {
+    return this.#agent?.signal
+  }
+
+  get agent() {
+    if (!this.#agent) throw new Error("agent not attached to context")
+    return this.#agent
+  }
+
+  get reasoning() {
+    return this.#reasoning
+  }
+
+  set reasoning(r: ReasoningEffort) {
+    if (r === this.#reasoning) return
+    const prev = this.#reasoning
+    this.#reasoning = r
+    void this.emit("reasoning", { effort: r, prev })
+  }
+
+  get session(): Session {
+    return this.#session
+  }
+
+  async useSession(s: Session): Promise<void> {
+    const prev = this.#session
+    this.#session = s
+    const modelId = s.settings.modelId
+    if (modelId && modelId !== this.model?.id) {
+      if (this.#opts.loadModel) {
+        this.model = await this.#opts.loadModel(modelId)
+      } else {
+        const { loadModel } = await import("@zaly/ai")
+        this.model = await loadModel(modelId)
+      }
+    }
+    this.cwd = s.settings.cwd ?? this.cwd
+    this.reasoning = s.settings.reasoning ?? this.reasoning
+    await this.emit("session", { prev, session: s })
+    if (this.#agent?.started)
+      await s.start({
+        cwd: this.cwd,
+        modelId: this.model?.id,
+        reasoning: this.reasoning,
+      })
+  }
+
+  get model() {
+    return this.#model
+  }
+
+  set model(m: Model | undefined) {
+    if (m === this.#model) return
+    const prev = this.#model
+    this.#model = m
+    void this.emit("model", { model: m, prev })
+  }
+
+  set tools(tools: Tool[]) {
+    this.#tools = tools
+  }
+
+  get tools(): Tool[] {
+    return [...this.#tools, ...(this.skills?.tool ? [this.skills.tool] : [])]
+  }
+
+  get prompt(): string[] {
+    return this.#prompt
+  }
+
+  set prompt(p: string[]) {
+    this.#prompt = p
+  }
+
+  async swarm() {
+    return this.#cache.need(
+      "swarm",
+      async () => {
+        const { Swarm } = await import("./swarm.ts")
+        return new Swarm()
+      },
+      this.#opts.swarm
+    )
+  }
+
+  set skills(s: Skills | undefined) {
+    if (s === this.#skills) return
+    this.#skills = s
+    void this.emit("skills", { skills: s })
+  }
+
+  get skills(): Skills | undefined {
+    return this.#skills
+  }
+
+  private async notifier(): Promise<Notifier | undefined> {
+    return this.#cache.want(
+      "notifier",
+      async (opts?: NotifyOptions) => {
+        const { Notifier } = await import("./notify.ts")
+        return new Notifier(opts)
+      },
+      this.#opts.notify
+    )
+  }
+
+  async masker(): Promise<Masker | undefined> {
+    return this.#cache.want(
+      "masker",
+      async (opts?: AgentOptions["mask"]) => {
+        const { Masker } = await import("./masker.ts")
+        return new Masker(this.agent, opts)
+      },
+      this.#opts.mask
+    )
+  }
+
+  async permissions(): Promise<PermissionManager> {
+    return this.#cache.need(
+      "permissions",
+      async (opts?: PermissionOptions) => {
+        const { PermissionManager } = await import("./permissions/manager.ts")
+        return new PermissionManager({ ...opts, cwd: this.cwd })
+      },
+      this.#opts.permissions
+    )
+  }
+}
+
+async function loadSession(spec?: AgentOptions["session"]): Promise<Session> {
+  if (isInstance<Session>(spec)) return spec
+  else {
+    const { Session } = await import("./session/session.ts")
+    return await Session.load({ ...spec })
+  }
+}
+
+export async function createAgentContext(opts: AgentOptions): Promise<AgentContext> {
+  const session = await loadSession(opts.session)
+  return new AgentContext({ ...opts, session })
+}
+
+export async function createAgent(opts: AgentOptions): Promise<Agent> {
+  const [{ Agent }, ctx] = await Promise.all([import("./agent.ts"), createAgentContext(opts)])
+  return new Agent(ctx)
+}

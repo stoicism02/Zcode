@@ -1,0 +1,98 @@
+{
+  "$schema": "file:./../schemas/theme.schema.json",
+  "id": "rose-pine",
+  "name": "Rosé Pine",
+  "shiki": "rose-pine",
+  "text": "#e0def4",
+  "subtle": "#908caa",
+  "ui": {
+    "bg": "#191724",
+    "fg": "#e0def4"
+  },
+  "primary": "#c4a7e7",
+  "accent": "#b399d4",
+  "success": "#31748f",
+  "info": "#ebbcba",
+  "warn": "#f6c177",
+  "error": "#eb6f92",
+  "muted": "#908caa",
+  "border": "#0000",
+  "code": {
+    "bg": "#1f1d2e"
+  },
+  "mdCodeBlock": {
+    "bg": "#1f1d2e"
+  },
+  "overlay": {
+    "bg": "#1f1d2e"
+  },
+  "highlight": {
+    "bg": "#2a2838"
+  },
+  "selection": {
+    "bg": "#2a2838"
+  },
+  "diffAdd": {
+    "bg": "#2d323f",
+    "fg": "#9ccfd8"
+  },
+  "diffDel": {
+    "bg": "#382434",
+    "fg": "#eb6f92"
+  },
+  "comment": {
+    "italic": true,
+    "fg": "#6e6a86"
+  },
+  "syntaxNumber": {
+    "fg": "#ebbcba"
+  },
+  "syntaxString": {
+    "fg": "#f6c177"
+  },
+  "syntaxBoolean": {
+    "fg": "#ebbcba"
+  },
+  "syntaxFunction": {
+    "fg": "#ebbcba"
+  },
+  "syntaxField": {
+    "fg": "#e0def4"
+  },
+  "syntaxConstant": {
+    "fg": "#31748f"
+  },
+  "syntaxSpecial": {
+    "fg": "#31748f"
+  },
+  "syntaxDelimiter": {
+    "fg": "#908caa"
+  },
+  "syntaxBracket": {
+    "fg": "#e0def4"
+  },
+  "mdHeading": {
+    "bold": true
+  },
+  "mdHeading1": {
+    "bold": true
+  },
+  "mdHeading2": {
+    "bold": true
+  },
+  "mdHeading3": {
+    "bold": true
+  },
+  "mdHeading4": {
+    "bold": true
+  },
+  "mdHeading5": {
+    "bold": true
+  },
+  "mdHeading6": {
+    "bold": true
+  },
+  "mdLink": {
+    "fg": "#f6c177"
+  }
+}

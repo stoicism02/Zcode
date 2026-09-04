@@ -1,0 +1,192 @@
+import { createHash } from "node:crypto"
+import { readFileSync, statSync } from "node:fs"
+import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises"
+import { dirname, join, resolve } from "pathe"
+
+export type AnyFn<A extends any[] = never[], R = unknown> = (...args: A) => R
+
+type SafeReturn<T extends AnyFn> =
+  ReturnType<T> extends Promise<infer R> ? Promise<R | undefined> : ReturnType<T> | undefined
+
+export function safeFn<T extends AnyFn>(fn: T) {
+  return (...args: Parameters<T>): SafeReturn<T> => {
+    try {
+      const ret = fn(...args) as ReturnType<T>
+      return (ret instanceof Promise ? ret.catch(() => undefined) : ret) as SafeReturn<T>
+    } catch {
+      return undefined as SafeReturn<T>
+    }
+  }
+}
+
+export function safeParseJson(v: unknown): unknown {
+  try {
+    return JSON.parse(String(v))
+  } catch {}
+}
+
+export function hash(content: string | Uint8Array, len = 16): string {
+  return createHash("sha256").update(content).digest("hex").slice(0, len)
+}
+
+export function randomHash(len?: number): string {
+  return hash(`${Date.now()}-${Math.random()}`, len)
+}
+
+export function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err))
+}
+
+export const safeReadFile = safeFn((p: string) => readFile(p, "utf8"))
+export const safeReadFileSync = safeFn((path: string) => readFileSync(path, "utf8"))
+export const safeStat = safeFn(statSync)
+export const safeStatAsync = safeFn((p: string) => stat(p))
+
+/** JSON.stringify with two safety guarantees:
+ *    1. BigInt values are coerced to their decimal string (default
+ *       JSON.stringify throws on BigInt).
+ *    2. Any throw — circular refs, non-coercible exotic values — is
+ *       caught and falls back to `String(value)` instead of propagating.
+ *  An optional `replacer` is applied *after* BigInt coercion so callers
+ *  can layer additional transformations (omit fields, redact, etc.). */
+export function safeStringify(
+  value: unknown,
+  replacer?: (key: string, value: unknown) => unknown,
+  space?: string | number
+): string {
+  try {
+    return JSON.stringify(
+      value,
+      (k, v) => {
+        const coerced = typeof v === "bigint" ? v.toString() : v
+        return replacer ? replacer(k, coerced) : coerced
+      },
+      space
+    )
+  } catch {
+    return String(value)
+  }
+}
+
+export type FindUpOpts<T extends boolean = boolean> = {
+  stop?: string | string[]
+  all?: T
+  type?: "file" | "dir"
+}
+
+/**
+ * Walk up the directory tree from `root` looking for `name`.
+ *
+ * @param name  Basename of file/dir to find at each level.
+ * @param opts.stop  Inclusive boundary — walk stops after checking this directory.
+ *                   Pass a `gitRoot()` result to bound the walk to the project.
+ * @param opts.all   When true, returns all matches (closest first). Default returns first.
+ */
+export function findUp(
+  root: string,
+  name: string | string[],
+  opts?: Partial<FindUpOpts<false>>
+): string | undefined
+export function findUp(root: string, name: string | string[], opts: FindUpOpts<true>): string[]
+export function findUp(
+  root: string,
+  name: string | string[],
+  opts: FindUpOpts = {}
+): string | string[] | undefined {
+  let current = resolve(root)
+  const stop = new Set(
+    (typeof opts.stop === "string" ? [opts.stop] : (opts.stop ?? [])).map((p) => resolve(p))
+  )
+  const names = Array.isArray(name) ? name : [name]
+  const ret: string[] = []
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
+  main: while (true) {
+    for (const n of names) {
+      const check = join(current, n)
+      const s = safeStat(check)
+      const t = s?.isDirectory() ? "dir" : "file"
+      if (s && (!opts.type || opts.type === t)) {
+        ret.push(check)
+        if (!opts.all) break main
+      }
+    }
+    if (stop.has(current)) break // reached stop directory without finding the file
+    const next = dirname(current)
+    if (next === current) break // reached filesystem root
+    current = next
+  }
+  return opts.all ? ret : ret[0]
+}
+
+export function gitRoot(path: string) {
+  const git = findUp(path, ".git")
+  return git ? dirname(git) : undefined
+}
+
+export function wrapError(msg: string, cause: unknown): Error {
+  const err = cause instanceof Error ? cause.message : String(cause)
+  return new Error(`${msg}: ${err}`, { cause })
+}
+
+export function withError<T>(fn: () => T, errorMsg: string): T {
+  try {
+    const ret = fn()
+    return ret instanceof Promise
+      ? (ret.catch((error) => {
+          throw wrapError(errorMsg, error)
+        }) as T)
+      : ret
+  } catch (error) {
+    throw wrapError(errorMsg, error)
+  }
+}
+
+export function clamp(num: number, min?: number, max?: number): number {
+  return Math.min(max ?? Infinity, Math.max(min ?? num, num))
+}
+
+export async function withLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
+  const lockfile = await import("proper-lockfile")
+  await mkdir(dirname(path), { recursive: true })
+  const release = await lockfile.lock(path, {
+    realpath: false,
+    retries: { factor: 1.5, minTimeout: 50, retries: 10 },
+    stale: 5000, // ignore locks older than 5s (crashed process)
+  })
+  try {
+    return await fn()
+  } finally {
+    await release()
+  }
+}
+
+/** Write to `<path>.<pid>.<ts>.tmp` then rename — atomic on POSIX (rename
+ *  within same filesystem is a single syscall). Crashes mid-write leave
+ *  the original file intact; the tmp file is cleaned up on error. */
+export async function atomicWriteFile(path: string, data: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true })
+  const tmp = `${path}.${process.pid}.${Date.now()}.tmp`
+  try {
+    await writeFile(tmp, data, "utf8")
+    await rename(tmp, path)
+  } catch (error) {
+    await unlink(tmp).catch(() => undefined)
+    throw error
+  }
+}
+
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
+export const isInstance = <T>(v: unknown): v is T =>
+  typeof v === "object" &&
+  v !== null &&
+  !Array.isArray(v) &&
+  Object.getPrototypeOf(v) !== Object.prototype
+
+export function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return !!value && typeof value === "object" && typeof (value as any).then === "function"
+}
+
+export type MaybeGetter<T> = T | (() => T)
+export function toValue<T>(value: MaybeGetter<T>): T {
+  return typeof value === "function" ? (value as () => T)() : value
+}

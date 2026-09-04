@@ -1,0 +1,255 @@
+import type { Static, TObject, TSchema } from "typebox/type"
+import type {
+  Message,
+  SafeParamsOf,
+  StaticOf,
+  Streamable,
+  Tool,
+  ToolCallPart,
+  ToolContext,
+  ToolDef,
+  ToolResult,
+  ToolResultPart,
+} from "./types.ts"
+
+import { safeParseJson } from "@zaly/shared"
+import { toContent } from "./content/format.ts"
+import { toErrorPart } from "./content/part.ts"
+import { Validator } from "./validate/validate.ts"
+
+export type { Streamable, ToolResult } from "./types.ts"
+
+/** Runtime guard for `Streamable`. Harnesses use this to branch tool
+ *  returns into the sync vs. potentially-long-running path. */
+export function isStreamable(value: unknown): value is Streamable {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Streamable).poll === "function" &&
+    typeof (value as Streamable).abort === "function" &&
+    (value as Streamable).done instanceof Promise
+  )
+}
+
+/** Declarative tool factory. Attaches a `Validator` that lazy-loads
+ *  typebox on first call: inputs are coerced then validated
+ *  (LLM-lenient), outputs are validated strictly (tool bug if shape
+ *  drifts).
+ *
+ *  `execute` receives the fully-validated `Static<S>` type — no need
+ *  to narrow or parse inside the handler.
+ *
+ *  ```ts
+ *  const Search = defineTool({
+ *    name: "search",
+ *    input: Type.Object({ query: Type.String(), limit: Type.Number({ default: 10 }) }),
+ *    execute: async ({ query, limit }) => { … },
+ *  })
+ *  ``` */
+export function defineTool<
+  Params extends TObject,
+  Result extends TSchema | undefined = undefined,
+  Meta extends object = object,
+>(def: ToolDef<Params, Result, Meta>): Tool<Static<Params>, StaticOf<Result>, Meta> {
+  // PERF: Keep the `never` hop: direct `as Out` makes TS structurally compare
+  // the object against Tool<Static<...>>, which is expensive with TypeBox.
+  // oxlint-disable-next-line sort-keys
+  const tool = {
+    name: def.name,
+    desc: def.desc,
+    params: def.params,
+    parallel: def.parallel,
+    preflight: def.preflight,
+    result: def.result,
+    call: def.call as unknown,
+    validator: new Validator(def.params, def.result),
+  } as never
+  return tool
+}
+
+export function pairedToolIds(messages: readonly Message[]) {
+  const valid = new Set<string>()
+  const callIds = new Set<string>()
+  for (const m of messages) {
+    if (m.role === "tool") {
+      for (const p of m.content) if (callIds.has(p.id)) valid.add(p.id)
+    } else if (m.role === "assistant" && Array.isArray(m.content)) {
+      for (const p of m.content) {
+        if (p.type === "tool-call") callIds.add(p.id)
+      }
+    }
+  }
+  return valid
+}
+
+export function* extractToolCalls<T extends string = string>(
+  messages: readonly Message[],
+  tools?: T[]
+): Generator<{ p: ToolCallPart<T>; $m: number; m: Message; $p: number }> {
+  for (let $m = messages.length - 1; $m >= 0; $m--) {
+    const m = messages[$m]
+    if (m.role !== "assistant" || typeof m.content === "string") continue
+    for (let $p = m.content.length - 1; $p >= 0; $p--) {
+      const p = m.content[$p]
+      if (p.type === "tool-call" && (tools === undefined || tools.includes(p.name as T)))
+        yield { $m, $p, m, p: p as ToolCallPart<T> }
+    }
+  }
+}
+
+export function* extractToolResults<M extends object = object, T extends string = string>(
+  messages: readonly Message[],
+  tools?: T[]
+): Generator<{ p: ToolResultPart<T, M>; $m: number; m: Message; $p: number }> {
+  for (let $m = messages.length - 1; $m >= 0; $m--) {
+    const m = messages[$m]
+    if (m.role !== "tool") continue
+    for (let $p = m.content.length - 1; $p >= 0; $p--) {
+      const p = m.content[$p]
+      if (tools === undefined || tools.includes(p.name as T))
+        yield { $m, $p, m, p: p as ToolResultPart<T, M> }
+    }
+  }
+}
+
+/** Lightweight reader for a `ToolCallPart.params` value.
+ *
+ *  In the normal agent flow, the kernel pre-validates each tool call:
+ *    `part.params = await validateToolParams(tool, params) ?? params`
+ *  So `params` is either:
+ *    - the canonical, schema-coerced object (validation succeeded), or
+ *    - the raw model output (validation failed) — usually a JSON string
+ *      that may or may not parse, occasionally an object that didn't
+ *      match the schema.
+ *
+ *  This helper accepts both. It JSON-parses if `params` is a string
+ *  (no JSON repair) and returns the object as-is if it's already one.
+ *  Anything else (parse error, null, primitives) yields `undefined`.
+ *
+ *  It does NOT validate against the tool's schema and does NOT coerce
+ *  types — for that, use `validateToolParams`. Use this when you need
+ *  a best-effort read of params for inspection (e.g. the masker
+ *  pulling `path` for file ops), not when correctness depends on the
+ *  shape being exactly `Params`. The return type is `Partial<...>` to
+ *  remind callers that any field could legitimately be missing or
+ *  off-shape on the failure path. */
+export function safeParseToolParams<T extends Tool = Tool>(params: unknown): SafeParamsOf<T> {
+  params = typeof params === "string" ? safeParseJson(params) : params
+  return typeof params === "object" && params !== null ? params : undefined
+}
+
+/** Wrap any thrown value as a `ToolResult` with `isError: true`. The
+ *  thrown value is coerced via `AiError.from` and embedded as an
+ *  `ErrorPart` in `content`; the same structured shape is also surfaced
+ *  on the `.error` sidecar for downstream consumers (TUI badges,
+ *  telemetry). At the wire boundary the `ErrorPart` folds to a
+ *  `<error>` `MetaPart` via `errorToMeta()` (or equivalent). */
+export function toErrorResult(err: unknown): ToolResult {
+  const ep = toErrorPart(err)
+  return { content: [ep], error: ep, isError: true }
+}
+
+/** Build a successful `ToolResult` from a tool's raw return value. Runs
+ *  the optional result-schema validation (strict — drift is a tool bug)
+ *  and normalises the value into the parts shape. `meta` comes from the
+ *  per-call `ctx.meta` slot the harness manages. */
+async function formatToolResult<O>(
+  tool: Tool<unknown, O>,
+  raw: Awaited<O>,
+  meta?: ToolResult["meta"]
+): Promise<ToolResult> {
+  const validated = await tool.validator.validateResult(raw)
+  return { content: toContent(validated), isError: false, meta }
+}
+
+/** Pull the per-call sidecar slot off a ctx, returning `undefined` when
+ *  the tool didn't write anything. The harness sets `ctx.meta = {}` on
+ *  a per-call copy before invoking the tool; this helper centralises
+ *  the "absent if empty" rule so result shapes stay clean. */
+function readToolMeta(ctx: ToolContext): ToolResult["meta"] {
+  return Object.keys(ctx.meta ?? {}).length > 0 ? ctx.meta : undefined
+}
+
+/** Execute a tool end-to-end: parse (if string) → validateInput →
+ *  execute → validateOutput (if declared). Every failure path returns
+ *  a `ToolResult` with `isError: true` and a model-readable message —
+ *  the caller never has to try/catch.
+ *
+ *  The formatted error on `INVALID_INPUT` is annotated JSONC from
+ *  `stringifyErrors`, which the model can patch up and retry; on
+ *  `INVALID_OUTPUT` or `ERROR` the format is a short code + message
+ *  block the model can quote back but shouldn't try to "fix."
+ *
+ *  Streamable returns are blocked on — `runTool` awaits the streamable's
+ *  `done` and surfaces the final snapshot. Use `Tasks.run` (in `@zaly/agent`)
+ *  if you want grace-window promotion to background tasks instead.
+ *
+ *  This is the convenience all-in-one wrapper. Long-running harnesses
+ *  pass `{ streaming: true }` to opt out of the block-on-streamable
+ *  behaviour and get the `Streamable` handle for grace-window racing.
+ */
+export async function runTool<I, O>(
+  tool: Tool<I, O>,
+  rawArgs: unknown,
+  ctx: ToolContext,
+  opts?: { preflight?: boolean }
+): Promise<ToolResult>
+export async function runTool<I, O>(
+  tool: Tool<I, O>,
+  rawArgs: unknown,
+  ctx: ToolContext,
+  opts: { preflight?: boolean; streaming: true }
+): Promise<ToolResult | Streamable>
+export async function runTool<I, O>(
+  tool: Tool<I, O>,
+  rawArgs: unknown,
+  ctx: ToolContext,
+  opts?: { preflight?: boolean; streaming?: boolean }
+): Promise<ToolResult | Streamable> {
+  ctx = { ...ctx, meta: {} }
+  const streaming = opts?.streaming ?? false
+
+  let params: I
+  try {
+    params = await tool.validator.validateParams(rawArgs)
+  } catch (error) {
+    return toErrorResult(error)
+  }
+
+  if (opts?.preflight !== false) {
+    try {
+      await tool.preflight?.(params, ctx)
+    } catch (error) {
+      return toErrorResult(error)
+    }
+  }
+
+  let result: Awaited<O>
+  try {
+    result = await tool.call(params, ctx)
+  } catch (error) {
+    return toErrorResult(error)
+  }
+
+  if (isStreamable(result)) {
+    if (streaming) {
+      // Streaming caller (Tasks.run) wants the Streamable handle so it
+      // can attach to the round race / promote to a background task.
+      // Don't validate or normalise — the snapshot's content shape is
+      // the tool's contract, not the declared `Result` schema.
+      return result
+    }
+    // Block until completion, then surface the final snapshot. No
+    // promotion path here — that's `Tasks.run`'s job.
+    await result.done
+    const snap = result.poll()
+    return {
+      content: snap.content,
+      error: snap.error,
+      isError: snap.isError,
+      meta: snap.meta ?? readToolMeta(ctx),
+    }
+  }
+
+  return formatToolResult(tool, result, readToolMeta(ctx))
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "file:./../schemas/theme.schema.json",
+  "id": "vesper",
+  "name": "Vesper",
+  "shiki": "vesper",
+  "text": "#FFF",
+  "ui": {
+    "bg": "#101010",
+    "fg": "#FFF"
+  },
+  "primary": "#FFC799",
+  "accent": "#FFCFA8",
+  "warn": "#FFC799",
+  "error": "#FF8080",
+  "code": {
+    "bg": "#101010"
+  },
+  "mdCodeBlock": {
+    "bg": "#101010"
+  },
+  "overlay": {
+    "bg": "#101010"
+  },
+  "highlight": {
+    "bg": "#333333"
+  },
+  "selection": {
+    "bg": "#333333"
+  },
+  "diffAdd": {
+    "bg": "#1b2421",
+    "fg": "#99FFE4"
+  },
+  "diffDel": {
+    "bg": "#241919",
+    "fg": "#FF8080"
+  },
+  "comment": {
+    "fg": "#575757"
+  },
+  "syntaxNumber": {
+    "fg": "#FFC799"
+  },
+  "syntaxString": {
+    "fg": "#99FFE4"
+  },
+  "syntaxBoolean": {
+    "fg": "#FFC799"
+  },
+  "syntaxFunction": {
+    "fg": "#FFC799"
+  },
+  "syntaxField": {
+    "fg": "#FFF"
+  },
+  "syntaxSpecial": {
+    "fg": "#A0A0A0"
+  },
+  "mdHeading": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdHeading1": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdHeading2": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdHeading3": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdHeading4": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdHeading5": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdHeading6": {
+    "fg": "#FFC799",
+    "bold": true
+  },
+  "mdBold": {
+    "bold": true,
+    "fg": "#FFF"
+  },
+  "mdItalic": {
+    "italic": true,
+    "fg": "#FFF"
+  },
+  "mdLink": {
+    "underline": true,
+    "fg": "#FFC799"
+  },
+  "mdHr": {
+    "bold": true,
+    "fg": "#65737E"
+  }
+}

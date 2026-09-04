@@ -1,0 +1,73 @@
+{
+  "name": "@zaly/config",
+  "version": "0.0.4",
+  "description": "Configuration, resource, pack, and plugin metadata system for zaly.",
+  "keywords": [
+    "config",
+    "plugins",
+    "resources",
+    "settings",
+    "zaly"
+  ],
+  "homepage": "https://github.com/folke/zaly/tree/main/packages/config#readme",
+  "bugs": {
+    "url": "https://github.com/folke/zaly/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/folke/zaly.git",
+    "directory": "packages/config"
+  },
+  "files": [
+    "assets/**/*",
+    "dist/**/*"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./plugin": {
+      "bun": "./src/plugin/index.ts",
+      "default": "./dist/plugin.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./plugin": "./dist/plugin.mjs",
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "z build",
+    "lint": "z lint",
+    "test": "z test"
+  },
+  "dependencies": {
+    "@zaly/agent": "workspace:*",
+    "@zaly/ai": "workspace:*",
+    "@zaly/shared": "workspace:*",
+    "@zaly/tui": "workspace:*",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.7.1",
+    "defu": "^6.1.7",
+    "semver": "^7.8.5",
+    "typia": "^13.0.2"
+  },
+  "engines": {
+    "bun": ">=1.2",
+    "node": ">=22.11"
+  },
+  "inlinedDependencies": {
+    "defu": "6.1.7",
+    "semver": "7.8.5",
+    "typia": "13.0.2"
+  }
+}

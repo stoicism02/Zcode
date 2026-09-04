@@ -1,0 +1,172 @@
+import { defineConfig } from "oxlint"
+
+function restrictedImport<K extends "name" | "regex">(
+  kind: K,
+  values: string | string[],
+  message: string,
+  enabled = true
+): K extends "name" ? { name: string; message: string }[] : { regex: string; message: string }[] {
+  if (!enabled) return []
+  const vv = Array.isArray(values) ? values : [values]
+  return vv.map((value) => ({ [kind]: value, message })) as any
+}
+
+function restrictedImports(
+  opts: { allowIndex?: boolean; allowSrc?: boolean; allowPath?: boolean } = {}
+) {
+  return {
+    paths: [
+      ...restrictedImport(
+        "name",
+        ["slice-ansi", "string-width", "wrap-ansi"],
+        "Import ANSI helpers from `#ansi` (runtime-conditional re-export across Bun and Node)."
+      ),
+      ...restrictedImport(
+        "name",
+        ["node:path", "path"],
+        "Import from `pathe` instead — cross-platform path normalization.",
+        !(opts.allowPath ?? false)
+      ),
+    ],
+    patterns: [
+      restrictedImport(
+        "regex",
+        String.raw`marked\.[tj]s`,
+        "Don't import the `marked` source directly; use `#md` so the bundler picks the runtime-appropriate renderer."
+      ),
+      restrictedImport(
+        "regex",
+        String.raw`runtime/.*\.[tj]s`,
+        "Don't import `runtime/*` source files directly; use the `#runtime` alias so Bun and Node resolve to the right impl."
+      ),
+      restrictedImport(
+        "regex",
+        "schemas/tpl/",
+        "Don't import generated schema files; use the public `schemas/index.ts` exports."
+      ),
+      restrictedImport(
+        "regex",
+        [String.raw`(^|/)index(\.ts)?$`],
+        "Inside a package, import from the actual source file. Barrels (`index.ts`) are reserved for external consumers",
+        !(opts.allowIndex ?? false)
+      ),
+      restrictedImport(
+        "regex",
+        String.raw`^\.`,
+        "Don't import from `src/` files directly; use the public exports at the package root.",
+        !(opts.allowSrc ?? true)
+      ),
+    ].flat(),
+  }
+}
+
+export default defineConfig({
+  categories: {
+    correctness: "error",
+    perf: "warn",
+    style: "warn",
+    suspicious: "warn",
+    // "pedantic": "warn",
+    // "restriction": "error"
+    // "nursery": "error"
+  },
+  env: {
+    node: true,
+  },
+  ignorePatterns: ["foo*.ts"],
+  options: {
+    reportUnusedDisableDirectives: "warn",
+    typeAware: true,
+    typeCheck: true,
+  },
+  plugins: ["eslint", "typescript", "unicorn", "oxc", "import"],
+  rules: {
+    "capitalized-comments": "off", // 98
+    curly: "off", // 154
+    eqeqeq: ["error", "always", { null: "ignore" }],
+    "func-style": "off", // 58
+    "id-length": "off", // 185
+    "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
+    "import/exports-last": "off", // 41
+    "import/group-exports": "off", // 106
+    "import/no-cycle": ["error"],
+    "import/no-duplicates": "error",
+    "import/no-named-as-default-member": "error",
+    "import/no-named-export": "off", // 165
+    "import/no-namespace": ["error", { ignore: ["node:*"] }],
+    "import/no-nodejs-modules": "off",
+    "import/prefer-default-export": "off", // 10
+    "init-declarations": "off", // 4
+    "max-params": ["warn", 4],
+    "max-statements": "off", // 26
+    "new-cap": ["warn", { capIsNewExceptionPattern: "(Intl|Value|Type|Schema|compiled\\w*)\\." }],
+    "no-console": "warn",
+    "no-continue": "off", // 24
+    "no-control-regex": "off", // 2
+    "no-duplicate-imports": ["warn", { allowSeparateTypeImports: true }], // 16
+    "no-implicit-coercion": "off", // 4
+    "no-labels": "off", // 4
+    "no-magic-numbers": "off", // 278
+    "no-restricted-imports": ["error", restrictedImports({ allowIndex: false })],
+    "no-ternary": "off",
+    "no-underscore-dangle": "off", // 4
+    "no-unnecessary-type-assertion": "off", // way too many false positives
+    "no-unused-vars": "warn",
+    "no-warning-comments": ["warn", { location: "start", terms: ["todo", "fixme", "bug"] }],
+    "oxc/no-barrel-file": "off",
+    "prefer-destructuring": "off", // 3
+    "prefer-named-capture-group": "off",
+    "prefer-template": "warn",
+    "sort-imports": "off", // 64
+    "sort-keys": ["warn", "asc", { caseSensitive: true, natural: false }],
+    "typescript/consistent-return": "off",
+    "typescript/consistent-type-definitions": "off", // 32
+    "typescript/consistent-type-imports": ["error", { fixStyle: "separate-type-imports" }],
+    "typescript/no-deprecated": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/parameter-properties": "off", // 20
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/prefer-readonly": "off", // 22
+    "typescript/prefer-regexp-exec": "off", // 6
+    "typescript/strict-boolean-expressions": "off",
+    "unicorn/max-nested-calls": "off",
+    "unicorn/no-null": "error", // 13
+    "unicorn/number-literal-case": "off", // disable, since oxfmt formats number literals in lowercase
+    "unicorn/prefer-module": "error",
+    "unicorn/prefer-node-protocol": "error",
+  },
+  overrides: [
+    {
+      files: ["**/index.ts"],
+      rules: {
+        "no-restricted-imports": ["error", restrictedImports({ allowIndex: true })],
+      },
+    },
+    {
+      files: ["!src/**/*.ts"],
+      rules: {
+        "eslint/no-await-in-loop": "off",
+        "eslint/no-console": "off",
+        "eslint/sort-keys": "off",
+        "no-restricted-imports": "off",
+      },
+    },
+    {
+      files: ["demo/**/*.ts", "plugins/**/*.ts"],
+      rules: {
+        "sort-keys": ["warn", "asc", { caseSensitive: true, natural: false }],
+        "no-restricted-imports": ["error", restrictedImports({ allowSrc: false, allowPath: true })],
+      },
+    },
+    {
+      files: ["*.vue"],
+      rules: {
+        "unicorn/filename-case": "off",
+      },
+    },
+  ],
+})

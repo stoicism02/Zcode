@@ -1,0 +1,275 @@
+{
+  "name": "@zaly/tui",
+  "version": "0.0.6",
+  "description": "Terminal UI framework used by zaly.",
+  "keywords": [
+    "ansi",
+    "cli",
+    "terminal",
+    "tui",
+    "widgets"
+  ],
+  "homepage": "https://github.com/folke/zaly/tree/main/packages/tui#readme",
+  "bugs": {
+    "url": "https://github.com/folke/zaly/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/folke/zaly.git",
+    "directory": "packages/tui"
+  },
+  "files": [
+    "dist/**/*",
+    "assets/**/*"
+  ],
+  "type": "module",
+  "imports": {
+    "#assets/*": "./assets/*",
+    "#ansi": {
+      "bun": "./src/runtime/ansi.bun.ts",
+      "default": "./dist/ansi.node.mjs"
+    },
+    "#md": {
+      "bun": "./src/runtime/md.bun.ts",
+      "default": "./dist/md.node.mjs"
+    },
+    "#shiki-worker": {
+      "bun": "./src/shiki/server.ts",
+      "default": "./dist/shiki/server.mjs"
+    }
+  },
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./ansi": {
+      "bun": "./src/style/ansi.ts",
+      "default": "./dist/ansi.mjs"
+    },
+    "./clipboard": {
+      "bun": "./src/input/clipboard.ts",
+      "default": "./dist/clipboard.mjs"
+    },
+    "./image": {
+      "bun": "./src/image/index.ts",
+      "default": "./dist/image.mjs"
+    },
+    "./markdown": {
+      "bun": "./src/markdown/index.ts",
+      "default": "./dist/markdown.mjs"
+    },
+    "./services/logger": {
+      "bun": "./src/services/logger.ts",
+      "default": "./dist/services/logger.mjs"
+    },
+    "./services/notifier": {
+      "bun": "./src/services/notifier.ts",
+      "default": "./dist/services/notifier.mjs"
+    },
+    "./services/picker": {
+      "bun": "./src/services/picker.ts",
+      "default": "./dist/services/picker.mjs"
+    },
+    "./services/prompt": {
+      "bun": "./src/services/prompt.ts",
+      "default": "./dist/services/prompt.mjs"
+    },
+    "./style": {
+      "bun": "./src/style/index.ts",
+      "default": "./dist/style.mjs"
+    },
+    "./text": {
+      "bun": "./src/layout/text.ts",
+      "default": "./dist/text.mjs"
+    },
+    "./themes": {
+      "bun": "./src/themes/registry.ts",
+      "default": "./dist/themes.mjs"
+    },
+    "./widgets/autocomplete": {
+      "bun": "./src/widgets/autocomplete.ts",
+      "default": "./dist/widgets/autocomplete.mjs"
+    },
+    "./widgets/box": {
+      "bun": "./src/widgets/box.ts",
+      "default": "./dist/widgets/box.mjs"
+    },
+    "./widgets/code": {
+      "bun": "./src/widgets/code.ts",
+      "default": "./dist/widgets/code.mjs"
+    },
+    "./widgets/completions": {
+      "bun": "./src/widgets/completions/index.ts",
+      "default": "./dist/widgets/completions/index.mjs"
+    },
+    "./widgets/completions/actions": {
+      "bun": "./src/widgets/completions/actions.ts",
+      "default": "./dist/widgets/completions/actions.mjs"
+    },
+    "./widgets/completions/files": {
+      "bun": "./src/widgets/completions/files.ts",
+      "default": "./dist/widgets/completions/files.mjs"
+    },
+    "./widgets/completions/github": {
+      "bun": "./src/widgets/completions/github.ts",
+      "default": "./dist/widgets/completions/github.mjs"
+    },
+    "./widgets/diff": {
+      "bun": "./src/widgets/diff.ts",
+      "default": "./dist/widgets/diff.mjs"
+    },
+    "./widgets/divider": {
+      "bun": "./src/widgets/divider.ts",
+      "default": "./dist/widgets/divider.mjs"
+    },
+    "./widgets/image": {
+      "bun": "./src/widgets/image.ts",
+      "default": "./dist/widgets/image.mjs"
+    },
+    "./widgets/input": {
+      "bun": "./src/widgets/input.ts",
+      "default": "./dist/widgets/input.mjs"
+    },
+    "./widgets/log": {
+      "bun": "./src/widgets/log.ts",
+      "default": "./dist/widgets/log.mjs"
+    },
+    "./widgets/markdown": {
+      "bun": "./src/widgets/markdown.ts",
+      "default": "./dist/widgets/markdown.mjs"
+    },
+    "./widgets/overlay": {
+      "bun": "./src/widgets/overlay.ts",
+      "default": "./dist/widgets/overlay.mjs"
+    },
+    "./widgets/picker": {
+      "bun": "./src/widgets/picker.ts",
+      "default": "./dist/widgets/picker.mjs"
+    },
+    "./widgets/progress": {
+      "bun": "./src/widgets/progress.ts",
+      "default": "./dist/widgets/progress.mjs"
+    },
+    "./widgets/select": {
+      "bun": "./src/widgets/select.ts",
+      "default": "./dist/widgets/select.mjs"
+    },
+    "./widgets/show": {
+      "bun": "./src/widgets/show.ts",
+      "default": "./dist/widgets/show.mjs"
+    },
+    "./widgets/spinner": {
+      "bun": "./src/widgets/spinner.ts",
+      "default": "./dist/widgets/spinner.mjs"
+    },
+    "./widgets/text": {
+      "bun": "./src/widgets/text.ts",
+      "default": "./dist/widgets/text.mjs"
+    },
+    "./widgets/tree": {
+      "bun": "./src/widgets/tree.ts",
+      "default": "./dist/widgets/tree.mjs"
+    },
+    "./widgets/widget": {
+      "bun": "./src/widgets/widget.ts",
+      "default": "./dist/widgets/widget.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "imports": {
+      "#shiki-worker": {
+        "default": "./dist/shiki/server.mjs"
+      },
+      "#assets/*": "./assets/*",
+      "#ansi": {
+        "bun": "./dist/ansi.bun.mjs",
+        "default": "./dist/ansi.node.mjs"
+      },
+      "#md": {
+        "bun": "./dist/md.bun.mjs",
+        "default": "./dist/md.node.mjs"
+      }
+    },
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./ansi": "./dist/ansi.mjs",
+      "./clipboard": "./dist/clipboard.mjs",
+      "./image": "./dist/image.mjs",
+      "./markdown": "./dist/markdown.mjs",
+      "./services/logger": "./dist/services/logger.mjs",
+      "./services/notifier": "./dist/services/notifier.mjs",
+      "./services/picker": "./dist/services/picker.mjs",
+      "./services/prompt": "./dist/services/prompt.mjs",
+      "./style": "./dist/style.mjs",
+      "./text": "./dist/text.mjs",
+      "./themes": "./dist/themes.mjs",
+      "./widgets/autocomplete": "./dist/widgets/autocomplete.mjs",
+      "./widgets/box": "./dist/widgets/box.mjs",
+      "./widgets/code": "./dist/widgets/code.mjs",
+      "./widgets/completions": "./dist/widgets/completions/index.mjs",
+      "./widgets/completions/actions": "./dist/widgets/completions/actions.mjs",
+      "./widgets/completions/files": "./dist/widgets/completions/files.mjs",
+      "./widgets/completions/github": "./dist/widgets/completions/github.mjs",
+      "./widgets/diff": "./dist/widgets/diff.mjs",
+      "./widgets/divider": "./dist/widgets/divider.mjs",
+      "./widgets/image": "./dist/widgets/image.mjs",
+      "./widgets/input": "./dist/widgets/input.mjs",
+      "./widgets/log": "./dist/widgets/log.mjs",
+      "./widgets/markdown": "./dist/widgets/markdown.mjs",
+      "./widgets/overlay": "./dist/widgets/overlay.mjs",
+      "./widgets/picker": "./dist/widgets/picker.mjs",
+      "./widgets/progress": "./dist/widgets/progress.mjs",
+      "./widgets/select": "./dist/widgets/select.mjs",
+      "./widgets/show": "./dist/widgets/show.mjs",
+      "./widgets/spinner": "./dist/widgets/spinner.mjs",
+      "./widgets/text": "./dist/widgets/text.mjs",
+      "./widgets/tree": "./dist/widgets/tree.mjs",
+      "./widgets/widget": "./dist/widgets/widget.mjs",
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "bench": "z bench",
+    "build": "z build",
+    "build:themes-1-shiki": "bun scripts/themes-shiki.ts",
+    "build:themes-2-nvim": "exit 0; nvim -l scripts/themes-nvim.lua",
+    "build:themes-3-tokyonight": "bun scripts/themes-tokyonight.ts",
+    "build:themes-4-builtin": "bun scripts/themes-builtin.ts && oxfmt src/themes/builtin.ts",
+    "docs:api": "typedoc",
+    "docs:build": "bun run docs:api && vitepress build docs",
+    "docs:dev": "bun run docs:api && vitepress dev docs",
+    "docs:preview": "vitepress preview docs",
+    "lint": "z lint",
+    "test": "z test"
+  },
+  "dependencies": {
+    "@zaly/shared": "workspace:*",
+    "diff": "^9.0.0",
+    "marked": "^18.0.6",
+    "pathe": "^2.0.3",
+    "shiki": "^4.3.1"
+  },
+  "devDependencies": {
+    "@typia/transform": "^12.1.1",
+    "ghostty-web": "^0.4.0",
+    "mitata": "^1.0.34",
+    "slice-ansi": "^9.0.0",
+    "string-width": "^8.2.2",
+    "typia": "^13.0.2",
+    "wrap-ansi": "^10.0.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.35.3"
+  },
+  "engines": {
+    "bun": ">=1.2",
+    "node": ">=22.11"
+  },
+  "inlinedDependencies": {
+    "typia": "13.0.2"
+  }
+}

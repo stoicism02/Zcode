@@ -1,0 +1,203 @@
+{
+  "name": "@zaly/shared",
+  "version": "0.0.4",
+  "description": "Shared utilities used across zaly packages.",
+  "keywords": [
+    "ansi",
+    "process",
+    "templates",
+    "utilities",
+    "zaly"
+  ],
+  "homepage": "https://github.com/folke/zaly/tree/main/packages/shared#readme",
+  "bugs": {
+    "url": "https://github.com/folke/zaly/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/folke/zaly.git",
+    "directory": "packages/shared"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "type": "module",
+  "imports": {
+    "#ansi": {
+      "bun": "./src/runtime/ansi.bun.ts",
+      "default": "./dist/ansi.node.mjs"
+    },
+    "#glob": {
+      "bun": "./src/runtime/glob.bun.ts",
+      "default": "./dist/glob.node.mjs"
+    }
+  },
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./ansi": {
+      "bun": "./src/ansi.ts",
+      "default": "./dist/ansi.mjs"
+    },
+    "./args": {
+      "bun": "./src/args.ts",
+      "default": "./dist/args.mjs"
+    },
+    "./cache": {
+      "bun": "./src/cache.ts",
+      "default": "./dist/cache.mjs"
+    },
+    "./collection": {
+      "bun": "./src/collection.ts",
+      "default": "./dist/collection.mjs"
+    },
+    "./detect": {
+      "bun": "./src/detect/index.ts",
+      "default": "./dist/detect.mjs"
+    },
+    "./env": {
+      "bun": "./src/env.ts",
+      "default": "./dist/env.mjs"
+    },
+    "./find": {
+      "bun": "./src/find.ts",
+      "default": "./dist/find.mjs"
+    },
+    "./glob": {
+      "bun": "./src/glob.ts",
+      "default": "./dist/glob.mjs"
+    },
+    "./image": {
+      "bun": "./src/image/index.ts",
+      "default": "./dist/image.mjs"
+    },
+    "./json": {
+      "bun": "./src/json.ts",
+      "default": "./dist/json.mjs"
+    },
+    "./logger": {
+      "bun": "./src/logger.ts",
+      "default": "./dist/logger.mjs"
+    },
+    "./minheap": {
+      "bun": "./src/minheap.ts",
+      "default": "./dist/minheap.mjs"
+    },
+    "./paths": {
+      "bun": "./src/paths/index.ts",
+      "default": "./dist/paths.mjs"
+    },
+    "./process": {
+      "bun": "./src/process/index.ts",
+      "default": "./dist/process.mjs"
+    },
+    "./prop": {
+      "bun": "./src/prop.ts",
+      "default": "./dist/prop.mjs"
+    },
+    "./registry": {
+      "bun": "./src/registry.ts",
+      "default": "./dist/registry.mjs"
+    },
+    "./shell": {
+      "bun": "./src/shell.ts",
+      "default": "./dist/shell.mjs"
+    },
+    "./template": {
+      "bun": "./src/template.ts",
+      "default": "./dist/template.mjs"
+    },
+    "./text": {
+      "bun": "./src/text.ts",
+      "default": "./dist/text.mjs"
+    },
+    "./throttle": {
+      "bun": "./src/throttle.ts",
+      "default": "./dist/throttle.mjs"
+    },
+    "./yaml": {
+      "bun": "./src/yaml.ts",
+      "default": "./dist/yaml.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./ansi": "./dist/ansi.mjs",
+      "./args": "./dist/args.mjs",
+      "./cache": "./dist/cache.mjs",
+      "./collection": "./dist/collection.mjs",
+      "./detect": "./dist/detect.mjs",
+      "./env": "./dist/env.mjs",
+      "./find": "./dist/find.mjs",
+      "./glob": "./dist/glob.mjs",
+      "./image": "./dist/image.mjs",
+      "./json": "./dist/json.mjs",
+      "./logger": "./dist/logger.mjs",
+      "./minheap": "./dist/minheap.mjs",
+      "./paths": "./dist/paths.mjs",
+      "./process": "./dist/process.mjs",
+      "./prop": "./dist/prop.mjs",
+      "./registry": "./dist/registry.mjs",
+      "./shell": "./dist/shell.mjs",
+      "./template": "./dist/template.mjs",
+      "./text": "./dist/text.mjs",
+      "./throttle": "./dist/throttle.mjs",
+      "./yaml": "./dist/yaml.mjs",
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "z build",
+    "lint": "z lint",
+    "test": "z test"
+  },
+  "dependencies": {
+    "pathe": "^2.0.3",
+    "proper-lockfile": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/picomatch": "^4.0.3",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/shell-quote": "^1.7.5",
+    "ignore": "^7.0.5",
+    "image-meta": "^0.2.2",
+    "js-yaml": "^5.2.1",
+    "picomatch": "^4.0.5",
+    "shell-quote": "^1.9.0",
+    "slice-ansi": "^9.0.0",
+    "string-width": "^8.2.2",
+    "wrap-ansi": "^10.0.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.35.3"
+  },
+  "engines": {
+    "bun": ">=1.2",
+    "node": ">=22.11"
+  },
+  "inlinedDependencies": {
+    "ansi-regex": "6.2.2",
+    "ansi-styles": "6.2.3",
+    "get-east-asian-width": "1.5.0",
+    "ignore": "7.0.5",
+    "image-meta": "0.2.2",
+    "is-fullwidth-code-point": "5.1.0",
+    "js-yaml": "5.2.1",
+    "picomatch": "4.0.5",
+    "shell-quote": "1.9.0",
+    "slice-ansi": "9.0.0",
+    "string-width": [
+      "8.2.0",
+      "8.2.2"
+    ],
+    "strip-ansi": "7.2.0",
+    "wrap-ansi": "10.0.0"
+  }
+}
