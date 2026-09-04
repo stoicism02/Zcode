@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.5](https://github.com/stoicism02/Zcode/compare/agent-v0.0.4...agent-v0.0.5) (2026-09-04)
+
+
+### 🚀 Enhancements
+
+* **agent:** add isolated workspace manager ([a958a81](https://github.com/stoicism02/Zcode/commit/a958a81505703a86aa96ceb429ee3a2c9341a730))
+* **agent:** add runtime scope foundations ([b83022f](https://github.com/stoicism02/Zcode/commit/b83022f1508f2593e3ff1abe4ce6d45c824a80ce))
+* **agent:** apply verified code artifacts ([f200aa7](https://github.com/stoicism02/Zcode/commit/f200aa742e4347daf9e958cce7c6b4fa084412c7))
+* **agent:** check artifact merge conflicts ([706e07a](https://github.com/stoicism02/Zcode/commit/706e07a339dd944012713c90b194401bd9e815b6))
+* **agent:** collect code artifacts from worktrees ([6ed1164](https://github.com/stoicism02/Zcode/commit/6ed1164c58f15ca31a29d5a9c0b0861a6b27dd9d))
+* **agent:** validate worktree artifacts ([d3585cc](https://github.com/stoicism02/Zcode/commit/d3585cc23fdccc470251158d5ee39ab2d56b4680))
+* **agent:** wire worktree subagents to artifacts ([24b73ef](https://github.com/stoicism02/Zcode/commit/24b73efb836cea059dd4a589bf168544e2918ec5))
+
+
+### 🩹 Fixes
+
+* **agent:** avoid reserved runtime import paths ([bdb2b88](https://github.com/stoicism02/Zcode/commit/bdb2b88079121c0b7388f29354a1086ae6288f82))
+
 ## [0.0.4](https://github.com/folke/zaly/compare/agent-v0.0.3...agent-v0.0.4) (2026-07-10)
 
 
