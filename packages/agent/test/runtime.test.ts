@@ -11,6 +11,7 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 import { PermissionManager } from "../src/permissions/manager.ts"
 import {
   AgentScope,
+  ArtifactConflictChecker,
   ArtifactCollector,
   InvalidRunTransitionError,
   ResourceBag,
@@ -286,6 +287,70 @@ describe("ArtifactCollector", () => {
     expect(artifact.patch).toContain("child change")
     expect(artifact.untrackedFiles).toEqual(["new-file.txt"])
     expect(artifact.patch).not.toContain("untracked content")
+  })
+})
+
+describe("ArtifactConflictChecker", () => {
+  async function createArtifact(repositoryRoot: string) {
+    const storageRoot = await mkdtemp(join(tmpdir(), "zaly-conflict-artifact-"))
+    temporaryDirectories.push(storageRoot)
+    const runId = createRunId()
+    const workspace = await new WorkspaceManager({ rootDir: storageRoot }).createWritable({
+      cwd: repositoryRoot,
+      runId,
+    })
+    await writeFile(join(workspace.path, "tracked.txt"), "child\n")
+    return new ArtifactCollector().collect({ runId, workspace })
+  }
+
+  test("reports clean when parent changes do not overlap the Artifact", async () => {
+    const repositoryRoot = await createGitRepository()
+    const artifact = await createArtifact(repositoryRoot)
+    await writeFile(join(repositoryRoot, "parent.txt"), "parent\n")
+    await runGit(repositoryRoot, ["add", "parent.txt"])
+    await runGit(repositoryRoot, ["commit", "-m", "parent change"])
+
+    const result = await new ArtifactConflictChecker().check({ artifact })
+
+    expect(result.status).toBe("clean")
+    expect(result.targetCommit).not.toBe(artifact.baseCommit)
+    expect(await readFile(join(repositoryRoot, "tracked.txt"), "utf8")).toBe("base\n")
+  })
+
+  test("reports conflicting files when parent and Artifact edit the same content", async () => {
+    const repositoryRoot = await createGitRepository()
+    const artifact = await createArtifact(repositoryRoot)
+    await writeFile(join(repositoryRoot, "tracked.txt"), "parent\n")
+    await runGit(repositoryRoot, ["add", "tracked.txt"])
+    await runGit(repositoryRoot, ["commit", "-m", "parent conflict"])
+
+    const result = await new ArtifactConflictChecker().check({ artifact })
+
+    expect(result.status).toBe("conflict")
+    expect(result.conflictingFiles).toContain("tracked.txt")
+    expect(await readFile(join(repositoryRoot, "tracked.txt"), "utf8")).toBe("parent\n")
+  })
+
+  test("blocks checks against a dirty parent Worktree", async () => {
+    const repositoryRoot = await createGitRepository()
+    const artifact = await createArtifact(repositoryRoot)
+    await writeFile(join(repositoryRoot, "tracked.txt"), "dirty parent\n")
+
+    await expect(new ArtifactConflictChecker().check({ artifact })).resolves.toMatchObject({
+      reason: "dirty-target",
+      status: "blocked",
+    })
+  })
+
+  test("blocks Artifacts whose untracked contents were not captured", async () => {
+    const repositoryRoot = await createGitRepository()
+    const captured = await createArtifact(repositoryRoot)
+    const artifact = { ...captured, untrackedFiles: ["new-file.txt"] }
+
+    await expect(new ArtifactConflictChecker().check({ artifact })).resolves.toMatchObject({
+      reason: "untracked-files-not-captured",
+      status: "blocked",
+    })
   })
 })
 

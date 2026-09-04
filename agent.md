@@ -232,6 +232,7 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [x] 未显式请求 Worktree 的 Child 保持 shared Workspace 的兼容行为；
 - [x] 将 Artifact 注册到 Parent Agent 的进程内 registry，供后续 inspect / RunStore 接入；
 - [x] 实现可信配置驱动的 `ValidationRunner`，并将自然完成的 Worktree Child 验证结果写入 Artifact；
+- [x] 实现基于 `baseCommit` 和临时 Worktree 的 Artifact 机械冲突预检（不修改 Parent Workspace）；
 - [ ] 将 Workspace 策略扩展到 Swarm / RunCoordinator，并实现真正 read-only Tool 权限；
 - [ ] 覆盖权限升级、路径逃逸、并行写入、失败隔离和清理测试。
 
@@ -261,7 +262,7 @@ Child Agent 的工作目录不能直接视为最终结果。代码必须转化�
 - [ ] 将 Run cancellation 传播到 Child Run、Agent、Tool Task 和 Process；
 - [x] 实现最小且幂等的 `ResourceBag.dispose()`；
 - [ ] 将 ResourceBag 接入完整 Parent/Child Run 资源树；
-- [ ] 实现 Artifact base commit 与冲突检查；
+- [x] 实现 Artifact base commit 与不污染 Parent Workspace 的机械冲突预检；
 - [ ] 在临时验证 Workspace 中运行 test、lint 和 typecheck；
 - [ ] 保存结构化 Validation Result；
 - [ ] 默认要求用户或 Parent Agent 审查；
