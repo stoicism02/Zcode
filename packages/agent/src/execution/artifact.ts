@@ -10,9 +10,11 @@ export type ValidationStatus = "failed" | "not-run" | "passed"
 export interface ValidationCheck {
   name: string
   status: ValidationStatus
-  command?: readonly string[]
+  command: readonly string[]
   durationMs?: number
+  exitCode?: number
   output?: string
+  truncated?: boolean
 }
 
 export interface ValidationSummary {

@@ -17,7 +17,7 @@ import type {
 import type { CompactionOptions } from "./compaction/compactions.ts"
 import type { AgentContext } from "./ctx.ts"
 import type { AgentEvents, AgentStatus, AgentStop, AgentStopKind } from "./events.ts"
-import type { CodeArtifact } from "./execution/artifact.ts"
+import type { CodeArtifact, ValidationSummary } from "./execution/artifact.ts"
 import type { ArtifactId } from "./execution/ids.ts"
 import type { Session } from "./session/session.ts"
 import type {
@@ -34,12 +34,18 @@ import { Emitter, toValue, toError } from "@zaly/shared"
 import { ArtifactCollector } from "./execution/artifact.ts"
 import { createRunId } from "./execution/ids.ts"
 import { AgentScope } from "./execution/scope.ts"
+import { ValidationRunner } from "./execution/validation.ts"
 import { StopPolicy } from "./stop.ts"
 import { Tasks, taskCompletionMessage, taskInfoPart } from "./tasks.ts"
 import { TokenUsage } from "./utils/usage.ts"
 import { uuidv7 } from "./utils/uuid.ts"
 
 const PRESSURE_LEVELS = [0.75, 0.85, 0.95] as const
+
+export interface ArtifactCaptureOptions {
+  /** Skip validation after a cancelled or failed child run. */
+  runValidation?: boolean
+}
 
 /**
  * Long-lived agent — drives the multi-turn loop, owns the run-time
@@ -72,8 +78,10 @@ export class Agent extends Emitter<AgentEvents> {
 
   #parent?: Agent
   #artifact?: CodeArtifact
-  #artifactCapture?: () => Promise<CodeArtifact>
+  #artifactCapture?: (options?: ArtifactCaptureOptions) => Promise<CodeArtifact>
   #artifactPromise?: Promise<CodeArtifact>
+  #validationRun?: () => Promise<ValidationSummary>
+  #validationPromise?: Promise<ValidationSummary>
   readonly #artifacts = new Map<ArtifactId, CodeArtifact>()
 
   #injectQueue: Message[] = []
@@ -192,6 +200,8 @@ export class Agent extends Emitter<AgentEvents> {
           artifactCollector: ArtifactCollector
           runId: NonNullable<AgentScope["runId"]>
           scope: AgentScope
+          validationProfile?: AgentOptions["validation"]
+          validationRunner: ValidationRunner
         }
       | undefined
 
@@ -215,6 +225,8 @@ export class Agent extends Emitter<AgentEvents> {
           runId,
           workspace,
         }),
+        validationProfile: childOverrides.validation ?? this.#opts.validation,
+        validationRunner: workspaceOptions.validationRunner ?? new ValidationRunner(),
       }
     }
 
@@ -231,6 +243,7 @@ export class Agent extends Emitter<AgentEvents> {
       // explicitly opted out of.
       notify: this.#opts.notify,
       permissions: inheritedPermissions,
+      validation: this.#opts.validation,
       skills: this.#ctx.skills, // shared catalog; child doesn't reload
       // Propagate the swarm so the child + every grandchild address
       // each other through the same registry. Override-able via
@@ -247,9 +260,17 @@ export class Agent extends Emitter<AgentEvents> {
     })
     ret.#parent = this
     if (isolated) {
-      ret.#artifactCapture = async () => {
+      if (isolated.validationProfile) {
+        ret.#validationRun = () =>
+          isolated.validationRunner.run(isolated.scope.workspace, isolated.validationProfile!, {
+            signal: isolated.scope.signal,
+          })
+      }
+      ret.#artifactCapture = async (options = {}) => {
+        const validation = options.runValidation === false ? undefined : await ret.runValidation()
         const artifact = await isolated.artifactCollector.collect({
           runId: isolated.runId,
+          ...(validation && { validation }),
           workspace: isolated.scope.workspace,
         })
         ret.#artifact = artifact
@@ -345,9 +366,15 @@ export class Agent extends Emitter<AgentEvents> {
   }
 
   /** Capture this isolated child once. Shared children have no Artifact source. */
-  captureArtifact(): Promise<CodeArtifact | undefined> {
+  captureArtifact(options: ArtifactCaptureOptions = {}): Promise<CodeArtifact | undefined> {
     if (!this.#artifactCapture) return Promise.resolve(undefined)
-    return (this.#artifactPromise ??= this.#artifactCapture())
+    return (this.#artifactPromise ??= this.#artifactCapture(options))
+  }
+
+  /** Run this child's trusted validation profile once, if one was configured. */
+  runValidation(): Promise<ValidationSummary | undefined> {
+    if (!this.#validationRun) return Promise.resolve(undefined)
+    return (this.#validationPromise ??= this.#validationRun())
   }
 
   get tools() {

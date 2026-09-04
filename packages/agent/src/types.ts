@@ -15,6 +15,7 @@ import type { CompactionOptions } from "./compaction/compactions.ts"
 import type { AgentStopKind, StepKind } from "./events.ts"
 import type { ArtifactCollector } from "./execution/artifact.ts"
 import type { RunId } from "./execution/ids.ts"
+import type { ValidationProfile, ValidationRunner } from "./execution/validation.ts"
 import type { WorkspaceManager } from "./execution/workspace.ts"
 import type { MaskerOptions } from "./masker.ts"
 import type { NotifyOptions } from "./notify.ts"
@@ -265,6 +266,8 @@ export interface AgentOptions extends CollectOptions {
   bash?: string[]
 
   loadModel?: (id: string) => Promise<Model>
+  /** Trusted commands run after a writable child finishes naturally. */
+  validation?: ValidationProfile
 }
 
 /** Explicit request for an isolated, writable child workspace. */
@@ -272,6 +275,7 @@ export interface WritableChildWorkspaceOptions {
   manager: WorkspaceManager
   runId?: RunId
   artifactCollector?: ArtifactCollector
+  validationRunner?: ValidationRunner
 }
 
 /** Options accepted by `Agent.child()`. Omit `workspace` to retain legacy sharing. */

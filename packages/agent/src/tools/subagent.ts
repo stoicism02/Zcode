@@ -138,10 +138,17 @@ export const subagentTool = defineTool({
     })
 
     child.send({ content: args.task, role: "user" })
-    const runDone = child.run().catch((error: unknown) => {
-      stopReason = "error"
-      throw error
-    })
+    let runOutcome: string | undefined
+    const runDone = child.run().then(
+      (outcome) => {
+        runOutcome = outcome
+        return outcome
+      },
+      (error: unknown) => {
+        stopReason = "error"
+        throw error
+      }
+    )
 
     const buildMeta = (running: boolean): SubagentMeta => ({
       depth,
@@ -205,7 +212,11 @@ export const subagentTool = defineTool({
       done: runDone.then(
         async () => {
           try {
-            const captured = await child.captureArtifact()
+            if (runOutcome !== "natural")
+              artifactError = "Validation not run: child did not finish naturally."
+            const captured = await child.captureArtifact({
+              runValidation: runOutcome === "natural",
+            })
             if (captured) artifact = summarizeCodeArtifact(captured)
           } catch (error) {
             artifactError = error instanceof Error ? error.message : String(error)
@@ -221,7 +232,7 @@ export const subagentTool = defineTool({
           // "completion is a final snapshot, not a throw."
           stopReason ??= "error"
           try {
-            const captured = await child.captureArtifact()
+            const captured = await child.captureArtifact({ runValidation: false })
             if (captured) artifact = summarizeCodeArtifact(captured)
           } catch (artifactCaptureError) {
             artifactError =

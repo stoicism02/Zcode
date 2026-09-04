@@ -97,7 +97,18 @@ describe("subagent tool", () => {
 
   test("worktree child returns an Artifact summary that the parent can inspect", async () => {
     const repositoryRoot = createGitRepository()
-    const parent = await loadAgent({ cwd: repositoryRoot, model: mockModel([okStop("done")]) })
+    const parent = await loadAgent({
+      cwd: repositoryRoot,
+      model: mockModel([okStop("done")]),
+      validation: {
+        checks: [
+          {
+            command: [process.execPath, "-e", "console.log('validated')"],
+            name: "proof",
+          },
+        ],
+      },
+    })
     const s = (await subagentTool.call(
       { description: "isolated work", prompt: "p", task: "inspect", workspace: "worktree" },
       ctxFor(parent)
@@ -110,6 +121,7 @@ describe("subagent tool", () => {
     tmpFiles.push(data.sessionPath)
     expect(data.workspace).toMatchObject({ kind: "worktree" })
     expect(data.artifact?.id).toBeDefined()
+    expect(data.artifact?.validationStatus).toBe("passed")
     expect(parent.getArtifact(data.artifact!.id)?.workspacePath).toBe(data.workspace.path)
 
     execFileSync("git", ["worktree", "remove", "--force", data.workspace.path], {
