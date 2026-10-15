@@ -260,7 +260,7 @@
     "slice-ansi": "^9.0.0",
     "string-width": "^8.2.2",
     "typia": "^13.0.2",
-    "wrap-ansi": "^10.0.0"
+    "wrap-ansi": "^10.0.1"
   },
   "optionalDependencies": {
     "sharp": "^0.35.3"
